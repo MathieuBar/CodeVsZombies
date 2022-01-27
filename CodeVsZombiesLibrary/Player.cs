@@ -218,8 +218,8 @@ namespace CodeVsZombiesLibrary
         /// <remarks>
         /// Lazy getter. 
         /// !!! 
-        /// Private field <cref name="_zombiesBarycentre"> must be set to 
-        /// <cref name="Position.UndefinedPos/> at each change in zombies
+        /// Private field <cref name="_zombiesBarycentre"/> must be set to 
+        /// <cref name="Position.UndefinedPos"/> at each change in zombies
         /// number or positions
         /// !!!
         /// </remarks>
