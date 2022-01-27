@@ -25,8 +25,8 @@ namespace CodeVsZombiesTest
             foreach((Position p1, Position p2) in testCases)
             {
                 Position nextPos = h.ComputeNextPos(p1, p2);
-                Assert.AreEqual(p1.x, nextPos.x);
-                Assert.AreEqual(p1.y, nextPos.y);
+                Assert.AreEqual(p1.X, nextPos.X);
+                Assert.AreEqual(p1.Y, nextPos.Y);
             }
         }
 
@@ -43,8 +43,8 @@ namespace CodeVsZombiesTest
             foreach((Human h, Position p) in testCases)
             {
                 Position nextPos = h.ComputeNextPos(p);
-                Assert.AreEqual(h.Pos.x, nextPos.x);
-                Assert.AreEqual(h.Pos.y, nextPos.y);
+                Assert.AreEqual(h.Pos.X, nextPos.X);
+                Assert.AreEqual(h.Pos.Y, nextPos.Y);
             }
         }
 

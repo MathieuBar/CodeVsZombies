@@ -82,7 +82,7 @@ namespace CodeVsZombiesTest
             Inputs inputs = ZombieTest.GenerateInputs(ZombieTestCase.OneZombieOneHuman);
             Zombie zombie = new Zombie(inputs.ZombieInputs[0]);
             IEnumerable<Human> humans = inputs.HumansInputs.Select(hi => new Human(hi));
-            Hero hero = new Hero(zombie.Pos.x, zombie.Pos.y + 1);
+            Hero hero = new Hero(zombie.Pos.X, zombie.Pos.Y + 1);
 
             zombie.UpdateTarget(hero, humans);
 

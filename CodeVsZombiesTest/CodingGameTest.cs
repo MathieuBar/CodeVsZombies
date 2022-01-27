@@ -14,8 +14,8 @@ namespace CodeVsZombiesTest
             Player player = new Player(inputs);
             Position resultPos = player.GetNextHeroTarget();
 
-            Assert.AreEqual(resultPos.x, inputs.HumansInputs[0].X);
-            Assert.AreEqual(resultPos.y, inputs.HumansInputs[0].Y);
+            Assert.AreEqual(resultPos.X, inputs.HumansInputs[0].X);
+            Assert.AreEqual(resultPos.Y, inputs.HumansInputs[0].Y);
 
             throw new AssertInconclusiveException();
         }

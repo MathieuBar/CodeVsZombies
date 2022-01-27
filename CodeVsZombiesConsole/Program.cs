@@ -67,7 +67,7 @@ namespace CodeVsZombiesConsole
 
                 // get hero target choice from player
                 Position target = player.GetNextHeroTarget();
-                Console.WriteLine($"{target.x} {target.y}"); // Your destination coordinates
+                Console.WriteLine($"{target.X} {target.Y}"); // Your destination coordinates
 
             }
         }

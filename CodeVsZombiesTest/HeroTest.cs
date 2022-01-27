@@ -35,8 +35,8 @@ namespace CodeVsZombiesTest
             foreach ((Hero h, Position p) in testCases)
             {
                 Position nextPos = h.ComputeNextPos(p);
-                Assert.AreEqual(p.x, nextPos.x);
-                Assert.AreEqual(p.y, nextPos.y);
+                Assert.AreEqual(p.X, nextPos.X);
+                Assert.AreEqual(p.Y, nextPos.Y);
             }
         }
 
@@ -57,8 +57,8 @@ namespace CodeVsZombiesTest
             foreach ((Hero h, Position p) in testCases)
             {
                 Position nextPos = h.ComputeNextPos(p);
-                Assert.AreEqual(p.x, nextPos.x);
-                Assert.AreEqual(p.y, nextPos.y);
+                Assert.AreEqual(p.X, nextPos.X);
+                Assert.AreEqual(p.Y, nextPos.Y);
             }
         }
 
@@ -82,8 +82,8 @@ namespace CodeVsZombiesTest
             foreach ((Hero h, Position p, Position res) in testCases)
             {
                 Position nextPos = h.ComputeNextPos(p);
-                Assert.AreEqual(res.x, nextPos.x);
-                Assert.AreEqual(res.y, nextPos.y);
+                Assert.AreEqual(res.X, nextPos.X);
+                Assert.AreEqual(res.Y, nextPos.Y);
             }
         }
 
@@ -102,8 +102,8 @@ namespace CodeVsZombiesTest
             foreach ((Hero h, Position p) in testCases)
             {
                 Position nextPos = h.ComputeNextPos(p);
-                Assert.AreEqual(p.x, nextPos.x);
-                Assert.AreEqual(p.y, nextPos.y);
+                Assert.AreEqual(p.X, nextPos.X);
+                Assert.AreEqual(p.Y, nextPos.Y);
             }            
         }
 
@@ -119,8 +119,8 @@ namespace CodeVsZombiesTest
             foreach ((Hero h, Position p) in testCases)
             {
                 Position nextPos = h.ComputeNextPos(p);
-                Assert.AreEqual(p.x, nextPos.x);
-                Assert.AreEqual(p.y, nextPos.y);
+                Assert.AreEqual(p.X, nextPos.X);
+                Assert.AreEqual(p.Y, nextPos.Y);
             }            
         }
 
@@ -138,8 +138,8 @@ namespace CodeVsZombiesTest
             foreach ((Hero h, Position p, Position res) in testCases)
             {
                 Position nextPos = h.ComputeNextPos(p);
-                Assert.AreEqual(res.x, nextPos.x);
-                Assert.AreEqual(res.y, nextPos.y);
+                Assert.AreEqual(res.X, nextPos.X);
+                Assert.AreEqual(res.Y, nextPos.Y);
             }            
         }
 

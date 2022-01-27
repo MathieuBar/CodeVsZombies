@@ -32,11 +32,11 @@ namespace CodeVsZombiesLibrary
         {
             if (this.Speed == 0) return sourcePos;
 
-            if (sourcePos.x < 0 || sourcePos.y < 0)
+            if (sourcePos.X < 0 || sourcePos.Y < 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(sourcePos), $"sourcePos should not contains negative coordinates (values : {targetPos})");
             }
-            if (targetPos.x < 0 || targetPos.y < 0)
+            if (targetPos.X < 0 || targetPos.Y < 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(targetPos), $"targetPos should not contains negative coordinates (values : {targetPos})");
             }
@@ -44,16 +44,16 @@ namespace CodeVsZombiesLibrary
             if (sourcePos.Equals(targetPos)) return targetPos;
 
             double distToTarget = sourcePos.DistanceTo(targetPos);
-            int deltaX = targetPos.x - sourcePos.x;
-            int deltaY = targetPos.y - sourcePos.y;
-            double realNextX = sourcePos.x + this.Speed*deltaX / distToTarget;
-            double realNextY = sourcePos.y + this.Speed*deltaY / distToTarget;
+            int deltaX = targetPos.X - sourcePos.X;
+            int deltaY = targetPos.Y - sourcePos.Y;
+            double realNextX = sourcePos.X + this.Speed*deltaX / distToTarget;
+            double realNextY = sourcePos.Y + this.Speed*deltaY / distToTarget;
 
             Position result = new Position(realNextX, realNextY);
 
             // if target reached, return target pos
-            if (Math.Abs(result.x - sourcePos.x) >= Math.Abs(deltaX)
-                && Math.Abs(result.y - sourcePos.y) >= Math.Abs(deltaY))
+            if (Math.Abs(result.X - sourcePos.X) >= Math.Abs(deltaX)
+                && Math.Abs(result.Y - sourcePos.Y) >= Math.Abs(deltaY))
             {
                 return targetPos;
             }
@@ -66,11 +66,11 @@ namespace CodeVsZombiesLibrary
 
         public int TurnsToBeInRange(Position sourcePos, Position targetPos, int range)
         {
-            if (sourcePos.x < 0 || sourcePos.y < 0)
+            if (sourcePos.X < 0 || sourcePos.Y < 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(sourcePos), $"sourcePos should not contains negative coordinates (values : {targetPos})");
             }
-            if (targetPos.x < 0 || targetPos.y < 0)
+            if (targetPos.X < 0 || targetPos.Y < 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(targetPos), $"targetPos should not contains negative coordinates (values : {targetPos})");
             }

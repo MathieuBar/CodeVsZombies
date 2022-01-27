@@ -55,8 +55,8 @@ namespace CodeVsZombiesLibrary
         public Inputs ToInputs()
         {
             Inputs result = new Inputs(
-                this.Ash.Pos.x,
-                this.Ash.Pos.y,
+                this.Ash.Pos.X,
+                this.Ash.Pos.Y,
                 this.Humans.Values.Select(h => h.ToHumanInputs()).ToList(),
                 this.Zombies.Values.Select(z => z.ToZombieInputs()).ToList()
             );

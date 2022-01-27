@@ -29,7 +29,7 @@ namespace CodeVsZombiesLibrary
         public ZombieInputs ToZombieInputs()
         {
             return new ZombieInputs(
-                this.Id, this.Pos.x, this.Pos.y, this.NextPosition.x, this.NextPosition.y);
+                this.Id, this.Pos.X, this.Pos.Y, this.NextPosition.X, this.NextPosition.Y);
         }
 
         public void UpdateBothPositions(int x, int y, int nextX, int nextY)

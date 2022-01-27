@@ -24,7 +24,7 @@ namespace CodeVsZombiesLibrary
 
         public HumanInputs ToHumanInputs()
         {
-            return new HumanInputs(this.Id, this.Pos.x, this.Pos.y);
+            return new HumanInputs(this.Id, this.Pos.X, this.Pos.Y);
         }
 
         public bool AddThreateningZombie(Zombie zombie, int turnsToBeCoveredByHero)

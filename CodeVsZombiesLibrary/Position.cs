@@ -4,36 +4,36 @@ namespace CodeVsZombiesLibrary
 {
     public struct Position
     {
-        public int x;
-        public int y;
+        public int X;
+        public int Y;
 
         public Position(int x, int y)
         {
-            this.x = x;
-            this.y = y;
+            this.X = x;
+            this.Y = y;
         }
 
         public Position(double x, double y)
         {
-            this.x = Position.RoundCoordinate(x);
-            this.y = Position.RoundCoordinate(y);            
+            this.X = Position.RoundCoordinate(x);
+            this.Y = Position.RoundCoordinate(y);            
         }
 
         public double DistanceTo(Position pos)
         {
             // Position (-1, -1) means character is dead => return float.NaN as distance
-            if (x < 0 || y < 0 || pos.x < 0 || pos.y < 0)
+            if (X < 0 || Y < 0 || pos.X < 0 || pos.Y < 0)
             {
                 return double.NaN;
             }
 
             return Math.Sqrt(
-                Math.Pow(pos.x-this.x, 2) + Math.Pow(pos.y-this.y, 2));
+                Math.Pow(pos.X-this.X, 2) + Math.Pow(pos.Y-this.Y, 2));
         }
 
         public bool Equals(Position pos)
         {
-            return this.x == pos.x && this.y == pos.y;
+            return this.X == pos.X && this.Y == pos.Y;
         }
 
         private static int RoundCoordinate(double realCoordinate) 

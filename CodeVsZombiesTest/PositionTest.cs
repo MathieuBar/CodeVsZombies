@@ -21,8 +21,8 @@ namespace CodeVsZombiesTest
             foreach((int, int) testValues in testCases)
             {
                 Position pos = new Position(testValues.Item1, testValues.Item2);
-                Assert.AreEqual(testValues.Item1, pos.x);
-                Assert.AreEqual(testValues.Item2, pos.y);
+                Assert.AreEqual(testValues.Item1, pos.X);
+                Assert.AreEqual(testValues.Item2, pos.Y);
             }
         }
 
@@ -39,8 +39,8 @@ namespace CodeVsZombiesTest
             foreach((double x, double y, int resX, int resY) in testCases)
             {
                 Position pos = new Position(x, y);
-                Assert.AreEqual(resX, pos.x);
-                Assert.AreEqual(resY, pos.y);
+                Assert.AreEqual(resX, pos.X);
+                Assert.AreEqual(resY, pos.Y);
             }
         }
 
