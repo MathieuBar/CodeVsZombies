@@ -149,5 +149,53 @@ namespace CodeVsZombiesTest
             Assert.AreEqual(zombie1.NextNearestHuman.Id, 0);
             Assert.AreEqual(zombie2.NextNearestHuman.Id, 0);
         }
+
+        [TestMethod]
+        public void NextPosition_GivenNextPos_GivenNextPos()
+        {
+            Hero hero = new Hero(0, 0);
+            IEnumerable<Human> humans = new List<Human>{
+                new Human(0, 3000, 3000),
+            };
+            Zombie zombie = new Zombie(0, 2000, 2000, 5000, 5000);
+            Position expected = new Position(5000, 5000);
+
+            zombie.UpdateTarget(hero, humans);
+            Position res = zombie.NextPosition;
+
+            Assert.AreEqual(expected.X, res.X);
+        }
+
+        [TestMethod]
+        public void NextPosition_NoGivenNextPosAndTowardsHuman_GoodComputedNextPos()
+        {
+            Hero hero = new Hero(0, 0);
+            IEnumerable<Human> humans = new List<Human>{
+                new Human(0, 3000, 3000),
+            };
+            Zombie zombie = new Zombie(0, 2000, 2000);
+            Position expected = new Position(2282, 2282);
+
+            zombie.UpdateTarget(hero, humans);
+            Position res = zombie.NextPosition;
+
+            Assert.AreEqual(expected.X, res.X);
+        }
+
+        [TestMethod]
+        public void NextPosition_NoGivenNextPosAndTowardsHero_GoodComputedNextPos()
+        {
+            Hero hero = new Hero(0, 0);
+            IEnumerable<Human> humans = new List<Human>{
+                new Human(0, 3000, 3000),
+            };
+            Zombie zombie = new Zombie(0, 1000, 1000);
+            Position expected = new Position(717, 717);
+
+            zombie.UpdateTarget(hero, humans);
+            Position res = zombie.NextPosition;
+
+            Assert.AreEqual(expected.X, res.X);
+        }
     }
 }

@@ -58,6 +58,50 @@ namespace CodeVsZombiesTest
         }
 
         [TestMethod]
+        public void AllHumanDoomed_AllHumanDoomed_True()
+        {
+            Inputs inputs = new Inputs(
+                10000,
+                10000,
+                new List<HumanInputs>(2){
+                    new HumanInputs(0, 1500, 0), // many turns to be in hero range
+                    new HumanInputs(1, 7500, 0), // many turns to be in hero range
+                },
+                new List<ZombieInputs>(2){
+                    new ZombieInputs(0, 1100, 0, 1500, 0), // one turn from human 0
+                    new ZombieInputs(1, 7900, 0, 7500, 0), // one turn from human 1                
+                }
+            );
+            Player p = new Player(inputs);
+
+            bool res = p.AllHumanDoomed();
+
+            Assert.IsTrue(res);
+        }
+
+        [TestMethod]
+        public void AllHumanDoomed_NotAllHumanDoomed_False()
+        {
+            Inputs inputs = new Inputs(
+                5000,
+                0,
+                new List<HumanInputs>(2){
+                    new HumanInputs(0, 1500, 0), // 2 turns to be in hero range
+                    new HumanInputs(1, 7500, 0), // 1 turn to be in hero range
+                },
+                new List<ZombieInputs>(2){
+                    new ZombieInputs(0, 1100, 0, 1500, 0), // one turn from human 0
+                    new ZombieInputs(1, 7900, 0, 7500, 0), // one turn from human 1                
+                }
+            );
+            Player p = new Player(inputs);
+
+            bool res = p.AllHumanDoomed();
+
+            Assert.IsFalse(res);
+        }
+
+        [TestMethod]
         public void UpdateFromNewInputs_MovedZombies_UpdatedBarycentre()
         {
             // Create initial inputs and init player
@@ -114,6 +158,57 @@ namespace CodeVsZombiesTest
 
             Assert.IsTrue(p.IsHumanDoomed(0));
             Assert.IsFalse(p.IsHumanDoomed(1));
+        }
+
+        [TestMethod]
+        public void GetNextHeroTarget_SaveAtLeastOneHuman_HumanSaved()
+        {
+            Inputs inputs = new Inputs(
+                5000,
+                0,
+                new List<HumanInputs>(2){
+                    new HumanInputs(0, 1500, 0), // 2 turns to be in hero range
+                    new HumanInputs(1, 7500, 0), // 1 turn to be in hero range
+                },
+                new List<ZombieInputs>(2){
+                    new ZombieInputs(0, 1100, 0, 1500, 0), // one turn from human 0
+                    new ZombieInputs(1, 7900, 0, 7500, 0), // one turn from human 1                
+                }
+            );
+            // expected target : human 1 position
+            Position expected = new Position(7500, 0);
+            Player p = new Player(inputs);
+
+            Position res = p.GetNextHeroTarget();
+
+            Assert.AreEqual(expected.X, res.X);
+            Assert.AreEqual(expected.Y, res.Y);
+        }
+
+
+        [TestMethod]
+        public void GetNextHeroTarget_OneHumanSafe_ZombiesBarycentre()
+        {
+            // hero between zombies and human, zombies go toward hero
+            Inputs inputs = new Inputs(
+                5000,
+                5000,
+                new List<HumanInputs>(2){
+                    new HumanInputs(0, 0, 0),
+                },
+                new List<ZombieInputs>(2){
+                    new ZombieInputs(0, 10000, 5000, 9400, 5000),
+                    new ZombieInputs(1, 5000, 10000, 5000, 9400),               
+                }
+            );
+            // expected target : next zombies barycentre
+            Position expected = new Position(7200, 7200);
+            Player p = new Player(inputs);
+
+            Position res = p.GetNextHeroTarget();
+
+            Assert.AreEqual(expected.X, res.X);
+            Assert.AreEqual(expected.Y, res.Y);
         }
     }
 }

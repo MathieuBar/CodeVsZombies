@@ -39,6 +39,9 @@ namespace CodeVsZombiesLibrary
                 this.ZombiesAlive.Add(zi.Id);
             }
             this._nextZombiesBarycentre = Position.UndefinedPos;
+            this.Ash.UpdateDistancesToHumans(this.Humans.Values);
+            this.UpdateZombiesTargets();
+            this.UpdateHumansThreats();
         }
 
         public void UpdateFromNewInputs(Inputs newTurnInputs)
@@ -50,9 +53,12 @@ namespace CodeVsZombiesLibrary
             this.UpdateDeadZombies(newTurnInputs.ZombieCount, newTurnInputs.ZombieInputs);
             foreach(ZombieInputs zi in newTurnInputs.ZombieInputs)
             {
-                this.UpdateZombiePositions(zi);
+                this.Zombies[zi.Id].UpdateFromNewInputs(zi);
             }
             this._nextZombiesBarycentre = Position.UndefinedPos;
+            this.Ash.UpdateDistancesToHumans(this.Humans.Values);
+            this.UpdateZombiesTargets();
+            this.UpdateHumansThreats();
         }
 
         /// Convert current Player to Inputs (mainly for unit tests purposes)
@@ -77,20 +83,57 @@ namespace CodeVsZombiesLibrary
             return this.Humans[humanId].Doomed;
         }
 
+        public bool AllHumanDoomed()
+        {
+            return this.Humans.All(h => h.Value.Doomed);
+        }
+
         public Position GetNextHeroTarget()
         {
-            this.Ash.UpdateDistancesToHumans(this.Humans.Values);
-            this.UpdateZombiesTargets();
-            this.UpdateHumansThreats();
-
-            Human humanToProtect = this.Humans.Values.FirstOrDefault(
-                h => !h.Doomed && h.ThreateningZombiesCount > 0
-            );
-            if (humanToProtect != null)
+            Position target = this.NextZombiesBarycentre;
+            Inputs nextInputs = this.SimulateNextMove(target);
+            Player playerNextTurn = new Player(nextInputs);
+            playerNextTurn.UpdateZombiesTargets();
+            
+            if (playerNextTurn.AllHumanDoomed())
             {
-                return humanToProtect.Pos;
+                Human humanToProtect = this.Humans.Values.FirstOrDefault(
+                    h => !h.Doomed && h.ThreateningZombiesCount > 0
+                );
+                if (humanToProtect != null)
+                {
+                    return humanToProtect.Pos;
+                }
             }
-            return this.Zombies.Values.First().Pos;
+
+            return target;
+        }
+
+        private Inputs SimulateNextMove(Position target)
+        {
+            // inputs from present states
+            Inputs result = this.ToInputs();
+
+            // update hero pos in inputs with given target
+            Position nextHeroPos = this.Ash.ComputeNextPos(target);
+            result.X = nextHeroPos.X;
+            result.Y = nextHeroPos.Y;
+
+            // update zombies positions
+            result.ZombieInputs.Clear();
+            result.ZombieCount = 0;
+            foreach(Zombie z in this.Zombies.Values)
+            {
+                result.AddZombieInputs(
+                    z.Id, 
+                    z.NextPosition.X,
+                    z.NextPosition.Y,
+                    Position.UndefinedPos.X,
+                    Position.UndefinedPos.Y
+                    );
+            }
+
+            return result;
         }
 
         private void AddHuman(HumanInputs hi)
@@ -144,11 +187,6 @@ namespace CodeVsZombiesLibrary
                     this.Zombies.Remove(id);
                 }
             }
-        }
-
-        private void UpdateZombiePositions(ZombieInputs zi)
-        {
-            this.Zombies[zi.Id].UpdateBothPositions(zi.X, zi.Y, zi.XNext, zi.YNext);
         }
 
         private void UpdateZombiesTargets()
