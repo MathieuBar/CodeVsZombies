@@ -11,6 +11,8 @@ namespace CodeVsZombiesLibrary
         private ISet<int> HumansAlive { get; set; }
         private Dictionary<int, Zombie> Zombies { get; set; }
         private ISet<int> ZombiesAlive { get; set; }
+        private Position _nextZombiesBarycentre;
+        public Position NextZombiesBarycentre => this.GetNextZombiesBarycentre();
 
         public Player(Inputs startInputs)
         {
@@ -36,6 +38,7 @@ namespace CodeVsZombiesLibrary
                 this.AddZombie(zi);
                 this.ZombiesAlive.Add(zi.Id);
             }
+            this._nextZombiesBarycentre = Position.UndefinedPos;
         }
 
         public void UpdateFromNewInputs(Inputs newTurnInputs)
@@ -49,6 +52,7 @@ namespace CodeVsZombiesLibrary
             {
                 this.UpdateZombiePositions(zi);
             }
+            this._nextZombiesBarycentre = Position.UndefinedPos;
         }
 
         /// Convert current Player to Inputs (mainly for unit tests purposes)
@@ -168,6 +172,30 @@ namespace CodeVsZombiesLibrary
                 int turnsToBeCoveredByHero = this.Ash.GetTurnsToGetInRangeToHuman(human.Id);
                 human.AddThreateningZombie(zombie, turnsToBeCoveredByHero);
             }
+        }
+
+        /// <summary>
+        /// Gets the barycentre of next positions of zombies
+        /// </summary>
+        /// <remarks>
+        /// Lazy getter. 
+        /// !!! 
+        /// Private field <cref name="_zombiesBarycentre"> must be set to 
+        /// <cref name="Position.UndefinedPos/> at each change in zombies
+        /// number or positions
+        /// !!!
+        /// </remarks>
+        /// <returns>the barycentre of next positions of zombies</returns>
+        /// <exception cref="NotImplementedException"></exception>
+        private Position GetNextZombiesBarycentre()
+        {
+            if (this._nextZombiesBarycentre.Equals(Position.UndefinedPos))
+            {
+                this._nextZombiesBarycentre = Position.FindBarycentre(
+                    this.Zombies.Values.Select(z => z.NextPosition));
+            }
+
+            return this._nextZombiesBarycentre;
         }
     }
 }

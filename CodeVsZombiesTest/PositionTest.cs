@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using CodeVsZombiesLibrary;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -8,6 +9,63 @@ namespace CodeVsZombiesTest
     [TestClass]
     public class PositionTest
     {
+        [TestMethod]
+        public void UndefinedPosition_CheckUndefinedPosition_MinusOne()
+        {
+            Position expected = new Position(-1, -1);
+
+            Position res = Position.UndefinedPos;
+
+            Assert.AreEqual(expected, res);
+        }
+
+        [TestMethod]
+        public void FindBarycentre_NullInputs_ThrowsNullArgumentException()
+        {
+            Assert.ThrowsException<ArgumentNullException>(
+                () => Position.FindBarycentre(null)
+            );
+        }
+        
+        [TestMethod]
+        public void FindBarycentre_0Inputs_ThrowsArgumentOutOfRangeException()
+        {
+            Assert.ThrowsException<ArgumentOutOfRangeException>(
+                () => Position.FindBarycentre(new List<Position>())
+            );
+        }
+
+        [TestMethod]
+        public void FindBarycentre_1Pos_SamePosition()
+        {
+            Position expectedPosition = new Position(1, 1);
+            IEnumerable<Position> positions = new List<Position>{
+                expectedPosition,
+            };
+            
+            Position res = Position.FindBarycentre(positions);
+
+            Assert.AreEqual(expectedPosition, res);
+        }
+
+        [TestMethod]
+        public void FindBarycentre_SeveralPositions_GoodBarycentre()
+        {
+            IEnumerable<Position> positions = new List<Position>{
+                new Position(10, 100),
+                new Position(30, 100),
+                new Position(40, 200),
+            };
+            double expectedX = (10+30+40)/3.0;
+            double expectedY = (100+100+200)/3.0;
+            Position expectedPosition = new Position(expectedX, expectedY);
+            
+            Position res = Position.FindBarycentre(positions);
+
+            Assert.AreEqual(expectedPosition, res);
+        }
+
+
         [TestMethod]
         public void Postion_CreateFromInts_SameValuesThanInput()
         {

@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace CodeVsZombiesLibrary
 {
@@ -6,6 +8,30 @@ namespace CodeVsZombiesLibrary
     {
         public int X;
         public int Y;
+
+        public static Position UndefinedPos => new Position(-1, -1);
+        
+        public static Position FindBarycentre(IEnumerable<Position> positions)
+        {
+            if (positions is null) throw new ArgumentNullException(nameof(positions));
+            if (!positions.Any()) 
+            {
+                throw new ArgumentOutOfRangeException(nameof(positions), $"No position given to compute barycentre");
+            }
+
+            int count = 0;
+            double x = 0;
+            double y = 0;
+
+            foreach(Position pos in positions)
+            {
+                count += 1;
+                x += pos.X;
+                y += pos.Y;
+            }
+
+            return new Position(x/count, y/count);
+        }
 
         public Position(int x, int y)
         {
