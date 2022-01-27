@@ -6,7 +6,7 @@ namespace CodeVsZombiesLibrary
 {
     public class Zombie: Character
     {
-        private const int ZombieSpeed = 400;
+        private const int _zombieSpeed = 400;
 
         public Position NextPosition {get; private set;}
         public Human NextNearestHuman {get; private set;}
@@ -18,7 +18,7 @@ namespace CodeVsZombiesLibrary
             base(id, xPos, yPos)
         {
             this.NextPosition = new Position(nextXPos, nextYPos);
-            this.Speed = Zombie.ZombieSpeed;
+            this.Speed = Zombie._zombieSpeed;
         }
 
         public Zombie(ZombieInputs zi): this(zi.Id, zi.X, zi.Y, zi.XNext, zi.YNext)

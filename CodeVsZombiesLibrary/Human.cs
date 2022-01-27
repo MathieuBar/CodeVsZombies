@@ -6,8 +6,8 @@ namespace CodeVsZombiesLibrary
     {
         public bool Doomed { get; set; }
         public int TurnsBeforeBeingCaught { get; private set; }
-        private ISet<int> ThreateningZombies { get; set; }
         public int ThreateningZombiesCount => this.ThreateningZombies.Count;
+        private ISet<int> ThreateningZombies { get; set; }
 
         public Human(int id, int xPos, int yPos): base(id, xPos, yPos)
         {

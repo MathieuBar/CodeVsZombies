@@ -6,13 +6,14 @@ namespace CodeVsZombiesLibrary
     public class Hero : Character
     {
         public const int DefaultHeroId = -1;
-        public const int ShootRange = 2000;
-        private const int HeroSpeed = 1000;
+        public const int _shootRange = 2000;
+        private const int _heroSpeed = 1000;
+        
         private Dictionary<int, int> TurnsToGetInRangeToHuman { get; set; }
 
         public Hero(int id, int xPos, int yPos): base(id, xPos, yPos)
         {
-            this.Speed = Hero.HeroSpeed;
+            this.Speed = Hero._heroSpeed;
             this.TurnsToGetInRangeToHuman = new Dictionary<int, int>();
         }
 
@@ -28,7 +29,7 @@ namespace CodeVsZombiesLibrary
 
         public int TurnsToBeInShootRange(Position targetPos)
         {
-            return this.TurnsToBeInRange(targetPos, Hero.ShootRange);
+            return this.TurnsToBeInRange(targetPos, Hero._shootRange);
         }
 
         public int GetTurnsToGetInRangeToHuman(int humanId)
