@@ -10,7 +10,7 @@ using System.Collections.Generic;
  **/
     class Program
     {
-        static void Main(string[] args)
+        static void Main()        
         {
             string[] inputs;
             Player player = null;
@@ -51,6 +51,7 @@ using System.Collections.Generic;
                     int zombieYNext = int.Parse(inputs[4]);
                     allInputs.AddZombieInputs(zombieId, zombieX, zombieY, zombieXNext, zombieYNext);
                 }
+
                 // Write an action using Console.WriteLine()
                 // To debug: Console.Error.WriteLine("Debug messages...");
 
@@ -67,9 +68,10 @@ using System.Collections.Generic;
                     player.UpdateFromNewInputs(allInputs);
                 }
 
+
                 // get hero target choice from player
                 Position target = player.GetNextHeroTarget();
-                Console.WriteLine($"{target.x} {target.y}"); // Your destination coordinates
+                Console.WriteLine($"{target.X} {target.Y}"); // Your destination coordinates
 
             }
         }
@@ -106,11 +108,11 @@ using System.Collections.Generic;
         {
             if (this.Speed == 0) return sourcePos;
 
-            if (sourcePos.x < 0 || sourcePos.y < 0)
+            if (sourcePos.X < 0 || sourcePos.Y < 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(sourcePos), $"sourcePos should not contains negative coordinates (values : {targetPos})");
             }
-            if (targetPos.x < 0 || targetPos.y < 0)
+            if (targetPos.X < 0 || targetPos.Y < 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(targetPos), $"targetPos should not contains negative coordinates (values : {targetPos})");
             }
@@ -118,16 +120,16 @@ using System.Collections.Generic;
             if (sourcePos.Equals(targetPos)) return targetPos;
 
             double distToTarget = sourcePos.DistanceTo(targetPos);
-            int deltaX = targetPos.x - sourcePos.x;
-            int deltaY = targetPos.y - sourcePos.y;
-            double realNextX = sourcePos.x + this.Speed*deltaX / distToTarget;
-            double realNextY = sourcePos.y + this.Speed*deltaY / distToTarget;
+            int deltaX = targetPos.X - sourcePos.X;
+            int deltaY = targetPos.Y - sourcePos.Y;
+            double realNextX = sourcePos.X + this.Speed*deltaX / distToTarget;
+            double realNextY = sourcePos.Y + this.Speed*deltaY / distToTarget;
 
             Position result = new Position(realNextX, realNextY);
 
             // if target reached, return target pos
-            if (Math.Abs(result.x - sourcePos.x) >= Math.Abs(deltaX)
-                && Math.Abs(result.y - sourcePos.y) >= Math.Abs(deltaY))
+            if (Math.Abs(result.X - sourcePos.X) >= Math.Abs(deltaX)
+                && Math.Abs(result.Y - sourcePos.Y) >= Math.Abs(deltaY))
             {
                 return targetPos;
             }
@@ -140,11 +142,11 @@ using System.Collections.Generic;
 
         public int TurnsToBeInRange(Position sourcePos, Position targetPos, int range)
         {
-            if (sourcePos.x < 0 || sourcePos.y < 0)
+            if (sourcePos.X < 0 || sourcePos.Y < 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(sourcePos), $"sourcePos should not contains negative coordinates (values : {targetPos})");
             }
-            if (targetPos.x < 0 || targetPos.y < 0)
+            if (targetPos.X < 0 || targetPos.Y < 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(targetPos), $"targetPos should not contains negative coordinates (values : {targetPos})");
             }
@@ -165,13 +167,14 @@ using System.Collections.Generic;
     public class Hero : Character
     {
         public const int DefaultHeroId = -1;
-        public const int ShootRange = 2000;
-        private const int HeroSpeed = 1000;
+        public const int _shootRange = 2000;
+        private const int _heroSpeed = 1000;
+        
         private Dictionary<int, int> TurnsToGetInRangeToHuman { get; set; }
 
         public Hero(int id, int xPos, int yPos): base(id, xPos, yPos)
         {
-            this.Speed = Hero.HeroSpeed;
+            this.Speed = Hero._heroSpeed;
             this.TurnsToGetInRangeToHuman = new Dictionary<int, int>();
         }
 
@@ -187,7 +190,7 @@ using System.Collections.Generic;
 
         public int TurnsToBeInShootRange(Position targetPos)
         {
-            return this.TurnsToBeInRange(targetPos, Hero.ShootRange);
+            return this.TurnsToBeInRange(targetPos, Hero._shootRange);
         }
 
         public int GetTurnsToGetInRangeToHuman(int humanId)
@@ -213,8 +216,8 @@ using System.Collections.Generic;
     {
         public bool Doomed { get; set; }
         public int TurnsBeforeBeingCaught { get; private set; }
-        private ISet<int> ThreateningZombies { get; set; }
         public int ThreateningZombiesCount => this.ThreateningZombies.Count;
+        private ISet<int> ThreateningZombies { get; set; }
 
         public Human(int id, int xPos, int yPos): base(id, xPos, yPos)
         {
@@ -231,7 +234,7 @@ using System.Collections.Generic;
 
         public HumanInputs ToHumanInputs()
         {
-            return new HumanInputs(this.Id, this.Pos.x, this.Pos.y);
+            return new HumanInputs(this.Id, this.Pos.X, this.Pos.Y);
         }
 
         public bool AddThreateningZombie(Zombie zombie, int turnsToBeCoveredByHero)
@@ -264,6 +267,416 @@ using System.Collections.Generic;
         }
         
     }
+
+    public class Player
+    {
+        private Hero Ash { get; set; }
+        private Dictionary<int, Human> Humans { get; set; }
+        private ISet<int> HumansAlive { get; set; }
+        private Dictionary<int, Zombie> Zombies { get; set; }
+        private ISet<int> ZombiesAlive { get; set; }
+        private Position _nextZombiesBarycentre;
+        public Position NextZombiesBarycentre => this.GetNextZombiesBarycentre();
+
+        public Player(Inputs startInputs)
+        {
+            this.InitFromInputs(startInputs);
+        }
+
+        public void InitFromInputs(Inputs startInputs)
+        {
+            this.Ash = new Hero(startInputs);
+
+            this.Humans = new Dictionary<int, Human>(startInputs.HumanCount);
+            this.HumansAlive = new HashSet<int>(startInputs.HumanCount);
+            foreach (HumanInputs hi in startInputs.HumansInputs)
+            {
+                this.AddHuman(hi);
+                this.HumansAlive.Add(hi.Id);
+            }
+
+            this.Zombies = new Dictionary<int, Zombie>(startInputs.ZombieCount);
+            this.ZombiesAlive = new HashSet<int>(startInputs.ZombieCount);
+            foreach (ZombieInputs zi in startInputs.ZombieInputs)
+            {
+                this.AddZombie(zi);
+                this.ZombiesAlive.Add(zi.Id);
+            }
+            this._nextZombiesBarycentre = Position.UndefinedPos;
+            this.Ash.UpdateDistancesToHumans(this.Humans.Values);
+            this.UpdateZombiesTargets();
+            this.UpdateHumansThreats();
+        }
+
+        public void UpdateFromNewInputs(Inputs newTurnInputs)
+        {
+            this.UpdateAshPos(newTurnInputs.X, newTurnInputs.Y);
+
+            this.UpdateDeadHumans(newTurnInputs.HumanCount, newTurnInputs.HumansInputs);
+
+            this.UpdateDeadZombies(newTurnInputs.ZombieCount, newTurnInputs.ZombieInputs);
+            foreach(ZombieInputs zi in newTurnInputs.ZombieInputs)
+            {
+                this.Zombies[zi.Id].UpdateFromNewInputs(zi);
+            }
+            this._nextZombiesBarycentre = Position.UndefinedPos;
+            this.Ash.UpdateDistancesToHumans(this.Humans.Values);
+            this.UpdateZombiesTargets();
+            this.UpdateHumansThreats();
+        }
+
+        /// Convert current Player to Inputs (mainly for unit tests purposes)
+        public Inputs ToInputs()
+        {
+            Inputs result = new Inputs(
+                this.Ash.Pos.X,
+                this.Ash.Pos.Y,
+                this.Humans.Values.Select(h => h.ToHumanInputs()).ToList(),
+                this.Zombies.Values.Select(z => z.ToZombieInputs()).ToList()
+            );
+
+            return result;
+        }
+
+        public bool IsHumanDoomed(int humanId)
+        {
+            if (!this.Humans.ContainsKey(humanId))
+            {
+                throw new ArgumentOutOfRangeException(nameof(humanId), $"No human with id {humanId} in humans alive.");
+            }
+            return this.Humans[humanId].Doomed;
+        }
+
+        public bool AllHumanDoomed()
+        {
+            return this.Humans.All(h => h.Value.Doomed);
+        }
+
+        public Position GetNextHeroTarget()
+        {
+            Position target = this.NextZombiesBarycentre;
+            Inputs nextInputs = this.SimulateNextMove(target);
+            Player playerNextTurn = new Player(nextInputs);
+            playerNextTurn.UpdateZombiesTargets();
+            
+            if (playerNextTurn.AllHumanDoomed())
+            {
+                Human humanToProtect = this.Humans.Values.FirstOrDefault(
+                    h => !h.Doomed && h.ThreateningZombiesCount > 0
+                );
+                if (humanToProtect != null)
+                {
+                    return humanToProtect.Pos;
+                }
+            }
+
+            return target;
+        }
+
+        private Inputs SimulateNextMove(Position target)
+        {
+            // inputs from present states
+            Inputs result = this.ToInputs();
+
+            // update hero pos in inputs with given target
+            Position nextHeroPos = this.Ash.ComputeNextPos(target);
+            result.X = nextHeroPos.X;
+            result.Y = nextHeroPos.Y;
+
+            // update zombies positions
+            result.ZombieInputs.Clear();
+            result.ZombieCount = 0;
+            foreach(Zombie z in this.Zombies.Values)
+            {
+                result.AddZombieInputs(
+                    z.Id, 
+                    z.NextPosition.X,
+                    z.NextPosition.Y,
+                    Position.UndefinedPos.X,
+                    Position.UndefinedPos.Y
+                    );
+            }
+
+            return result;
+        }
+
+        private void AddHuman(HumanInputs hi)
+        {
+            this.Humans.Add(hi.Id, new Human(hi));
+        }
+
+        private void AddZombie(ZombieInputs zi)
+        {
+            this.Zombies.Add(zi.Id, new Zombie(zi));
+        }
+
+        private void UpdateAshPos(int x, int y)
+        {
+            this.Ash.UpdatePosition(x, y);
+        }
+
+        private void UpdateDeadHumans(int newHumanCount, IList<HumanInputs> humansInputs)
+        {
+            if (newHumanCount > this.Humans.Count)
+            {
+                throw new InvalidOperationException("More human alive in input than in internal State.");
+            }
+
+            if (newHumanCount < this.Humans.Count)
+            {
+                this.HumansAlive.Clear();
+                this.HumansAlive.UnionWith(humansInputs.Select(hi => hi.Id));
+                IEnumerable<int> deadHumans = this.Humans.Keys.Except(this.HumansAlive);
+                foreach (int id in deadHumans)
+                {
+                    this.Humans.Remove(id);
+                }
+            }
+        }
+
+        private void UpdateDeadZombies(int newZombieCount, IList<ZombieInputs> zombiesInputs)
+        {
+            if (newZombieCount > this.Zombies.Count)
+            {
+                throw new InvalidOperationException("More zombies alive in input than in internal State.");
+            }
+
+            if (newZombieCount < this.Zombies.Count)
+            {
+                this.ZombiesAlive.Clear();
+                this.ZombiesAlive.UnionWith(zombiesInputs.Select(zi => zi.Id));
+                IEnumerable<int> deadZombies = this.Zombies.Keys.Except(this.ZombiesAlive);
+                foreach (int id in deadZombies)
+                {
+                    this.Zombies.Remove(id);
+                }
+            }
+        }
+
+        private void UpdateZombiesTargets()
+        {
+            foreach(Zombie zombie in this.Zombies.Values)
+            {
+                zombie.UpdateTarget(this.Ash, this.Humans.Values);
+            }
+        }
+
+        private void UpdateHumansThreats()
+        {
+            foreach(Human human in this.Humans.Values)
+            {
+                human.ClearThreateningZombies();
+            }
+
+            foreach(Zombie zombie in this.Zombies.Values.Where(z => z.NextNearestHuman != null))
+            {
+                Human human = zombie.NextNearestHuman;
+                int turnsToBeCoveredByHero = this.Ash.GetTurnsToGetInRangeToHuman(human.Id);
+                human.AddThreateningZombie(zombie, turnsToBeCoveredByHero);
+            }
+        }
+
+        /// <summary>
+        /// Gets the barycentre of next positions of zombies
+        /// </summary>
+        /// <remarks>
+        /// Lazy getter. 
+        /// !!! 
+        /// Private field <cref name="_zombiesBarycentre"/> must be set to 
+        /// <cref name="Position.UndefinedPos"/> at each change in zombies
+        /// number or positions
+        /// !!!
+        /// </remarks>
+        /// <returns>the barycentre of next positions of zombies</returns>
+        /// <exception cref="NotImplementedException"></exception>
+        private Position GetNextZombiesBarycentre()
+        {
+            if (this._nextZombiesBarycentre.Equals(Position.UndefinedPos))
+            {
+                this._nextZombiesBarycentre = Position.FindBarycentre(
+                    this.Zombies.Values.Select(z => z.NextPosition));
+            }
+
+            return this._nextZombiesBarycentre;
+        }
+    }
+
+    public struct Position
+    {
+        public int X;
+        public int Y;
+
+        public static Position UndefinedPos => new Position(-1, -1);
+        
+        public static Position FindBarycentre(IEnumerable<Position> positions)
+        {
+            if (positions is null) throw new ArgumentNullException(nameof(positions));
+            if (!positions.Any()) 
+            {
+                throw new ArgumentOutOfRangeException(nameof(positions), $"No position given to compute barycentre");
+            }
+
+            int count = 0;
+            double x = 0;
+            double y = 0;
+
+            foreach(Position pos in positions)
+            {
+                count += 1;
+                x += pos.X;
+                y += pos.Y;
+            }
+
+            return new Position(x/count, y/count);
+        }
+
+        public Position(int x, int y)
+        {
+            this.X = x;
+            this.Y = y;
+        }
+
+        public Position(double x, double y)
+        {
+            this.X = Position.RoundCoordinate(x);
+            this.Y = Position.RoundCoordinate(y);            
+        }
+
+        public double DistanceTo(Position pos)
+        {
+            // Position (-1, -1) means character is dead => return float.NaN as distance
+            if (X < 0 || Y < 0 || pos.X < 0 || pos.Y < 0)
+            {
+                return double.NaN;
+            }
+
+            return Math.Sqrt(
+                Math.Pow(pos.X-this.X, 2) + Math.Pow(pos.Y-this.Y, 2));
+        }
+
+        public bool Equals(Position pos)
+        {
+            return this.X == pos.X && this.Y == pos.Y;
+        }
+
+        private static int RoundCoordinate(double realCoordinate) 
+            => (int)Math.Floor(realCoordinate);
+    }
+
+    public class Zombie: Character
+    {
+        private const int _zombieSpeed = 400;
+
+        public Position NextPosition => this.GetNextPosition();
+        public Human NextNearestHuman {get; private set;}
+        public int TurnsToNearestHuman {get; private set;}
+        public bool NextTargetIsHero {get; private set;}
+        
+        private Position _givenNextPosition;
+        private Position _targetPos;
+        private Position _computedNextPosition;
+
+
+        public Zombie(int id, int xPos, int yPos, int nextXPos, int nextYPos): 
+            base(id, xPos, yPos)
+        {
+            this._givenNextPosition = new Position(nextXPos, nextYPos);
+            this.Speed = Zombie._zombieSpeed;
+            this.ClearStatefullData();
+        }
+
+        public Zombie(int id, int xPos, int yPos): this(
+            id, xPos, yPos, Position.UndefinedPos.X, Position.UndefinedPos.Y)
+        {
+            // nothing to add
+        }
+
+        public Zombie(ZombieInputs zi): this(zi.Id, zi.X, zi.Y, zi.XNext, zi.YNext)
+        {
+            // nothing to add
+        }
+
+        public ZombieInputs ToZombieInputs()
+        {
+            return new ZombieInputs(
+                this.Id, this.Pos.X, this.Pos.Y, this._givenNextPosition.X, this._givenNextPosition.Y);
+        }
+
+
+        public void UpdateFromNewInputs(ZombieInputs newTurnZombieInputs)
+        {
+            this.ClearStatefullData();
+            
+            // update positions
+            this.UpdatePosition(newTurnZombieInputs.X, newTurnZombieInputs.Y);
+            this._givenNextPosition = new Position(newTurnZombieInputs.XNext, newTurnZombieInputs.YNext);
+        }
+
+        public void UpdateTarget(Hero hero, IEnumerable<Human> humans)
+        {
+            if (hero is null) throw new ArgumentNullException(nameof(hero));
+            if (humans is null) throw new ArgumentNullException(nameof(humans));
+            if (!humans.Any()) throw new InvalidOperationException("There must be at least one human");
+
+            double distToHero = hero.Pos.DistanceTo(this.Pos);
+
+            Human nearestHuman = null;
+            double distToNearestHuman = double.MaxValue;
+            foreach (Human human in humans)
+            {
+                double distToHuman = human.Pos.DistanceTo(this.Pos);
+                if (distToHuman < distToNearestHuman
+                    || (distToHuman == distToNearestHuman && human.Id < nearestHuman.Id))
+                {
+                    distToNearestHuman = distToHuman;
+                    nearestHuman = human;
+                }
+            }
+
+            this.NextNearestHuman = nearestHuman;
+            this.TurnsToNearestHuman = this.TurnsToBeInRange(this.Pos, nearestHuman.Pos, 0);
+            this.NextTargetIsHero = distToHero < distToNearestHuman;
+            this._targetPos = this.NextTargetIsHero ? hero.Pos : this.NextNearestHuman.Pos;
+        }
+
+        private void ClearStatefullData()
+        {
+            this._computedNextPosition = Position.UndefinedPos;
+            this._targetPos = Position.UndefinedPos;
+            this.NextNearestHuman = null;
+            this.TurnsToNearestHuman = -1;
+            this.NextTargetIsHero = false;
+        }
+
+        private Position GetNextPosition()
+        {
+            // Next position has been given => return given next position
+            if (!this._givenNextPosition.Equals(Position.UndefinedPos))
+            {
+                return this._givenNextPosition;
+            }   
+
+            // No next position given => if next position already computed return it
+            if (!this._computedNextPosition.Equals(Position.UndefinedPos))
+            {
+                return _computedNextPosition;
+            }
+
+            // No next position given nor computed => _targetPos must have been set to continue
+            if (this._targetPos.Equals(Position.UndefinedPos))
+            {
+                throw new InvalidOperationException(
+                    "Unable to give next position when the next position  " +
+                    "was not given and target position is not set yet. " +
+                    "Update targets first !");
+            }
+
+            // No next position given nor computed, but targetPos is known => compute next pos
+            this._computedNextPosition = this.ComputeNextPos(this._targetPos);
+            return this._computedNextPosition;
+        }
+    }
+
 
     public struct HumanInputs
     {
@@ -347,297 +760,6 @@ using System.Collections.Generic;
             }
 
             return sb.ToString();
-        }
-    }
-
-    public class Player
-    {
-        private Hero Ash { get; set; }
-        private Dictionary<int, Human> Humans { get; set; }
-        private ISet<int> HumansAlive { get; set; }
-        private Dictionary<int, Zombie> Zombies { get; set; }
-        private ISet<int> ZombiesAlive { get; set; }
-
-        public Player(Inputs startInputs)
-        {
-            this.InitFromInputs(startInputs);
-        }
-
-        public void InitFromInputs(Inputs startInputs)
-        {
-            this.Ash = new Hero(startInputs);
-
-            this.Humans = new Dictionary<int, Human>(startInputs.HumanCount);
-            this.HumansAlive = new HashSet<int>(startInputs.HumanCount);
-            foreach (HumanInputs hi in startInputs.HumansInputs)
-            {
-                this.AddHuman(hi);
-                this.HumansAlive.Add(hi.Id);
-            }
-
-            this.Zombies = new Dictionary<int, Zombie>(startInputs.ZombieCount);
-            this.ZombiesAlive = new HashSet<int>(startInputs.ZombieCount);
-            foreach (ZombieInputs zi in startInputs.ZombieInputs)
-            {
-                this.AddZombie(zi);
-                this.ZombiesAlive.Add(zi.Id);
-            }
-        }
-
-        public void UpdateFromNewInputs(Inputs newTurnInputs)
-        {
-            this.UpdateAshPos(newTurnInputs.X, newTurnInputs.Y);
-
-            this.UpdateDeadHumans(newTurnInputs.HumanCount, newTurnInputs.HumansInputs);
-
-            this.UpdateDeadZombies(newTurnInputs.ZombieCount, newTurnInputs.ZombieInputs);
-            foreach(ZombieInputs zi in newTurnInputs.ZombieInputs)
-            {
-                this.UpdateZombiePositions(zi);
-            }
-        }
-
-        /// Convert current Player to Inputs (mainly for unit tests purposes)
-        public Inputs ToInputs()
-        {
-            Inputs result = new Inputs(
-                this.Ash.Pos.x,
-                this.Ash.Pos.y,
-                this.Humans.Values.Select(h => h.ToHumanInputs()).ToList(),
-                this.Zombies.Values.Select(z => z.ToZombieInputs()).ToList()
-            );
-
-            return result;
-        }
-
-        public bool IsHumanDoomed(int humanId)
-        {
-            if (!this.Humans.ContainsKey(humanId))
-            {
-                throw new ArgumentOutOfRangeException(nameof(humanId), $"No human with id {humanId} in humans alive.");
-            }
-            return this.Humans[humanId].Doomed;
-        }
-
-        public Position GetNextHeroTarget()
-        {
-            this.Ash.UpdateDistancesToHumans(this.Humans.Values);
-            this.UpdateZombiesTargets();
-            this.UpdateHumansThreats();
-
-            Human humanToProtect = null;
-            foreach(Human human in this.Humans.Values)
-            {
-                if (humanToProtect is null)
-                {
-                    if (!human.Doomed)
-                    {
-                        humanToProtect = human;
-                    }
-                    continue;
-                }
-
-                if (human.ThreateningZombiesCount > humanToProtect.ThreateningZombiesCount)
-                {
-                    humanToProtect = human;
-                    continue;
-                }
-
-                int marginToSaveHtP = humanToProtect.TurnsBeforeBeingCaught - Ash.GetTurnsToGetInRangeToHuman(humanToProtect.Id);
-                int marginToSaveNewH = human.TurnsBeforeBeingCaught - Ash.GetTurnsToGetInRangeToHuman(human.Id);
-                if (marginToSaveNewH < marginToSaveHtP)
-                {
-                    humanToProtect = human;
-                    continue;
-                }
-            }
-            if (humanToProtect != null)
-            {
-                return humanToProtect.Pos;
-            }
-            
-            return this.Ash.Pos;
-        }
-
-
-        private void AddHuman(HumanInputs hi)
-        {
-            this.Humans.Add(hi.Id, new Human(hi));
-        }
-
-        private void AddZombie(ZombieInputs zi)
-        {
-            this.Zombies.Add(zi.Id, new Zombie(zi));
-        }
-
-        private void UpdateAshPos(int x, int y)
-        {
-            this.Ash.UpdatePosition(x, y);
-        }
-
-        private void UpdateDeadHumans(int newHumanCount, IList<HumanInputs> humansInputs)
-        {
-            if (newHumanCount > this.Humans.Count)
-            {
-                throw new InvalidOperationException("More human alive in input than in internal State.");
-            }
-
-            if (newHumanCount < this.Humans.Count)
-            {
-                this.HumansAlive.Clear();
-                this.HumansAlive.UnionWith(humansInputs.Select(hi => hi.Id));
-                IEnumerable<int> deadHumans = this.Humans.Keys.Except(this.HumansAlive);
-                foreach (int id in deadHumans)
-                {
-                    this.Humans.Remove(id);
-                }
-            }
-        }
-
-        private void UpdateDeadZombies(int newZombieCount, IList<ZombieInputs> zombiesInputs)
-        {
-            if (newZombieCount > this.Zombies.Count)
-            {
-                throw new InvalidOperationException("More zombies alive in input than in internal State.");
-            }
-
-            if (newZombieCount < this.Zombies.Count)
-            {
-                this.ZombiesAlive.Clear();
-                this.ZombiesAlive.UnionWith(zombiesInputs.Select(zi => zi.Id));
-                IEnumerable<int> deadZombies = this.Zombies.Keys.Except(this.ZombiesAlive);
-                foreach (int id in deadZombies)
-                {
-                    this.Zombies.Remove(id);
-                }
-            }
-        }
-
-        private void UpdateZombiePositions(ZombieInputs zi)
-        {
-            this.Zombies[zi.Id].UpdateBothPositions(zi.X, zi.Y, zi.XNext, zi.YNext);
-        }
-
-        private void UpdateZombiesTargets()
-        {
-            foreach(Zombie zombie in this.Zombies.Values)
-            {
-                zombie.UpdateTarget(this.Ash, this.Humans.Values);
-            }
-        }
-
-        private void UpdateHumansThreats()
-        {
-            foreach(Human human in this.Humans.Values)
-            {
-                human.ClearThreateningZombies();
-            }
-
-            foreach(Zombie zombie in this.Zombies.Values.Where(z => z.NextNearestHuman != null))
-            {
-                Human human = zombie.NextNearestHuman;
-                int turnsToBeCoveredByHero = this.Ash.GetTurnsToGetInRangeToHuman(human.Id);
-                human.AddThreateningZombie(zombie, turnsToBeCoveredByHero);
-            }
-        }
-    }
-
-    public struct Position
-    {
-        public int x;
-        public int y;
-
-        public Position(int x, int y)
-        {
-            this.x = x;
-            this.y = y;
-        }
-
-        public Position(double x, double y)
-        {
-            this.x = Position.RoundCoordinate(x);
-            this.y = Position.RoundCoordinate(y);            
-        }
-
-        public double DistanceTo(Position pos)
-        {
-            // Position (-1, -1) means character is dead => return float.NaN as distance
-            if (x < 0 || y < 0 || pos.x < 0 || pos.y < 0)
-            {
-                return double.NaN;
-            }
-
-            return Math.Sqrt(
-                Math.Pow(pos.x-this.x, 2) + Math.Pow(pos.y-this.y, 2));
-        }
-
-        public bool Equals(Position pos)
-        {
-            return this.x == pos.x && this.y == pos.y;
-        }
-
-        private static int RoundCoordinate(double realCoordinate) 
-            => (int)Math.Floor(realCoordinate);
-    }
-
-    public class Zombie: Character
-    {
-        private const int ZombieSpeed = 400;
-
-        public Position NextPosition {get; private set;}
-        public Human NextNearestHuman {get; private set;}
-        public int TurnsToNearestHuman {get; private set;}
-        public bool NextTargetIsHero {get; private set;}
-            
-
-        public Zombie(int id, int xPos, int yPos, int nextXPos, int nextYPos): 
-            base(id, xPos, yPos)
-        {
-            this.NextPosition = new Position(nextXPos, nextYPos);
-            this.Speed = Zombie.ZombieSpeed;
-        }
-
-        public Zombie(ZombieInputs zi): this(zi.Id, zi.X, zi.Y, zi.XNext, zi.YNext)
-        {
-            // nothing to add
-        }
-
-        public ZombieInputs ToZombieInputs()
-        {
-            return new ZombieInputs(
-                this.Id, this.Pos.x, this.Pos.y, this.NextPosition.x, this.NextPosition.y);
-        }
-
-        public void UpdateBothPositions(int x, int y, int nextX, int nextY)
-        {
-            this.UpdatePosition(x, y);
-            this.NextPosition = new Position(nextX, nextY);
-        }
-
-        public void UpdateTarget(Hero hero, IEnumerable<Human> humans)
-        {
-            if (hero is null) throw new ArgumentNullException(nameof(hero));
-            if (humans is null) throw new ArgumentNullException(nameof(humans));
-            if (!humans.Any()) throw new InvalidOperationException("There must be at least one human");
-
-            double distToHero = hero.Pos.DistanceTo(this.NextPosition);
-
-            Human nearestHuman = null;
-            double distToNearestHuman = double.MaxValue;
-            foreach (Human human in humans)
-            {
-                double distToHuman = human.Pos.DistanceTo(this.NextPosition);
-                if (distToHuman < distToNearestHuman
-                    || (distToHuman == distToNearestHuman && human.Id < nearestHuman.Id))
-                {
-                    distToNearestHuman = distToHuman;
-                    nearestHuman = human;
-                }
-            }
-
-            this.NextNearestHuman = nearestHuman;
-            this.TurnsToNearestHuman = this.TurnsToBeInRange(this.NextPosition, nearestHuman.Pos, 0) + 1;
-            this.NextTargetIsHero = distToHero < distToNearestHuman;
         }
     }
 
