@@ -214,7 +214,7 @@ namespace CodeVsZombiesLibrary
             {
                 Human human = zombie.GetNearestHuman(this.Humans.Values);
                 int turnsToBeCoveredByHero = this.Ash.GetTurnsToGetInRangeToHuman(human);
-                human.AddThreateningZombie(zombie, turnsToBeCoveredByHero, this.Humans.Values);
+                human.AddThreateningZombie(zombie, this.Ash, this.Humans.Values);
             }
         }
 

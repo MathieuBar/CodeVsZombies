@@ -57,11 +57,10 @@ namespace CodeVsZombiesTest
                 human,
             };
             Zombie zombie = new Zombie(0, 400, 0, 0, 0);
-            Hero hero = new Hero(5000, 0);
-            int turnsToBeCoveredByHero = 1;
+            Hero hero = new Hero(3000, 0);
             zombie.UpdateTarget(hero, humans);
 
-            bool added = human.AddThreateningZombie(zombie, turnsToBeCoveredByHero, humans);
+            bool added = human.AddThreateningZombie(zombie, hero, humans);
 
             Assert.IsTrue(added);
             Assert.AreEqual(1, human.ThreateningZombiesCount);
@@ -79,13 +78,12 @@ namespace CodeVsZombiesTest
             };
             Zombie zombie1 = new Zombie(0, 800, 0, 400, 0);
             Zombie zombie2 = new Zombie(1, 400, 0, 0, 0);
-            Hero hero = new Hero(5000, 0);
-            int turnsToBeCoveredByHero = 2;
+            Hero hero = new Hero(4000, 0);
             zombie1.UpdateTarget(hero, humans);
             zombie2.UpdateTarget(hero, humans);
 
-            human.AddThreateningZombie(zombie1, turnsToBeCoveredByHero, humans);
-            human.AddThreateningZombie(zombie2, turnsToBeCoveredByHero, humans);
+            human.AddThreateningZombie(zombie1, hero, humans);
+            human.AddThreateningZombie(zombie2, hero, humans);
 
             Assert.AreEqual(2, human.ThreateningZombiesCount);
             Assert.AreEqual(1, human.TurnsBeforeBeingCaught);
@@ -102,12 +100,12 @@ namespace CodeVsZombiesTest
             };
             Zombie zombie1 = new Zombie(0, 400, 0, 0, 0);
             Zombie zombie2 = new Zombie(1, 800, 0, 400, 0);
-            Hero hero = new Hero(5000, 0);
+            Hero hero = new Hero(3000, 0);
             zombie1.UpdateTarget(hero, humans);
             zombie2.UpdateTarget(hero, humans);
 
-            human.AddThreateningZombie(zombie1, 1, humans);
-            human.AddThreateningZombie(zombie2, 1, humans);
+            human.AddThreateningZombie(zombie1, hero, humans);
+            human.AddThreateningZombie(zombie2, hero, humans);
 
             Assert.AreEqual(2, human.ThreateningZombiesCount);
             Assert.AreEqual(1, human.TurnsBeforeBeingCaught);
@@ -122,10 +120,10 @@ namespace CodeVsZombiesTest
                 human,
             };
             Zombie zombie = new Zombie(0, 400, 0, 0, 0);
-            Hero hero = new Hero(5000, 0);
+            Hero hero = new Hero(3000, 0);
             zombie.UpdateTarget(hero, humans);
 
-            bool result = human.AddThreateningZombie(zombie, 1, humans);
+            bool result = human.AddThreateningZombie(zombie, hero, humans);
 
             Assert.IsTrue(result);
             Assert.AreEqual(1, human.ThreateningZombiesCount);
@@ -144,7 +142,7 @@ namespace CodeVsZombiesTest
             Hero hero = new Hero(5000, 0);
             zombie1.UpdateTarget(hero, humans);
 
-            bool result = human.AddThreateningZombie(zombie1, 1, humans);
+            bool result = human.AddThreateningZombie(zombie1, hero, humans);
 
             Assert.IsFalse(result);
             Assert.AreEqual(0, human.ThreateningZombiesCount);
@@ -166,7 +164,7 @@ namespace CodeVsZombiesTest
             // zombie1 target will be human2
             zombie1.UpdateTarget(hero, humans);
 
-            bool result = human1.AddThreateningZombie(zombie1, 1, humans);
+            bool result = human1.AddThreateningZombie(zombie1, hero, humans);
 
             Assert.IsFalse(result);
             Assert.AreEqual(0, human1.ThreateningZombiesCount);
@@ -185,8 +183,8 @@ namespace CodeVsZombiesTest
             Hero hero = new Hero(5000, 0);
             zombie1.UpdateTarget(hero, humans);
 
-            human.AddThreateningZombie(zombie1, 1, humans);
-            bool result = human.AddThreateningZombie(zombie1, 1, humans);
+            human.AddThreateningZombie(zombie1, hero, humans);
+            bool result = human.AddThreateningZombie(zombie1, hero, humans);
 
             Assert.IsFalse(result);
             Assert.AreEqual(1, human.ThreateningZombiesCount);
@@ -204,7 +202,7 @@ namespace CodeVsZombiesTest
             Zombie zombie = new Zombie(0, 400, 0, 0, 0);
             Hero hero = new Hero(5000, 0);
             zombie.UpdateTarget(hero, humans);
-            human.AddThreateningZombie(zombie, 1, humans);
+            human.AddThreateningZombie(zombie, hero, humans);
 
             human.ClearThreateningZombies();
 
@@ -223,7 +221,7 @@ namespace CodeVsZombiesTest
             List<Human> humans = new List<Human>() { human };
             // set zombie target to human and add threatening zombie to human threats
             zombie.UpdateTarget(hero, humans);
-            human.AddThreateningZombie(zombie, 3, humans);
+            human.AddThreateningZombie(zombie, hero, humans);
             // check that init is well done
             Assert.AreEqual(1, human.ThreateningZombiesCount);
             Assert.AreEqual(1, human.TurnsBeforeBeingCaught);

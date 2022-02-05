@@ -29,9 +29,9 @@ namespace CodeVsZombiesLibrary
             return new HumanInputs(this.Id, this.Pos.X, this.Pos.Y);
         }
 
-        public bool AddThreateningZombie(Zombie zombie, int turnsToBeCoveredByHero, IEnumerable<Human> humans)
+        public bool AddThreateningZombie(Zombie zombie, Hero hero, IEnumerable<Human> humans)
         {
-            if (zombie.NextTargetIsHero 
+            if (zombie.GetNextTargetIsHero(hero, humans)
                 || zombie.GetNearestHuman(humans) != this
                 || this.ThreateningZombies.Contains(zombie.Id))
             {
@@ -45,7 +45,7 @@ namespace CodeVsZombiesLibrary
                 this.TurnsBeforeBeingCaught = turnsToGetCaughtByThisZombie;
             }
 
-            if (turnsToGetCaughtByThisZombie < turnsToBeCoveredByHero)
+            if (turnsToGetCaughtByThisZombie < hero.GetTurnsToGetInRangeToHuman(this))
             {
                 this.Doomed = true;
             }
