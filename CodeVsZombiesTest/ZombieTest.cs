@@ -147,15 +147,13 @@ namespace CodeVsZombiesTest
         }
 
         [TestMethod]
-        public void TurnsToNearestHuman_OneHuman_GoodDistance()
+        public void GetTurnsToNearestHuman_OneHuman_GoodDistance()
         {
             Inputs inputs = ZombieTest.GenerateInputs(ZombieTestCase.OneZombieOneHuman);
             Zombie zombie = new Zombie(inputs.ZombieInputs[0]);
             IEnumerable<Human> humans = inputs.HumansInputs.Select(hi => new Human(hi));
-            Hero hero = new Hero(inputs);
 
-            zombie.UpdateTarget(hero, humans);
-            int result = zombie.TurnsToNearestHuman;
+            int result = zombie.GetTurnsToNearestHuman(humans);
 
             Assert.AreEqual(4, result);
         }

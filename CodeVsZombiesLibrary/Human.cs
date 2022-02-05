@@ -39,12 +39,13 @@ namespace CodeVsZombiesLibrary
             }
 
             this.ThreateningZombies.Add(zombie.Id);
-            if (zombie.TurnsToNearestHuman < this.TurnsBeforeBeingCaught)
+            int turnsToGetCaughtByThisZombie = zombie.GetTurnsToNearestHuman(humans);
+            if (turnsToGetCaughtByThisZombie < this.TurnsBeforeBeingCaught)
             {
-                this.TurnsBeforeBeingCaught = zombie.TurnsToNearestHuman;
+                this.TurnsBeforeBeingCaught = turnsToGetCaughtByThisZombie;
             }
 
-            if (zombie.TurnsToNearestHuman < turnsToBeCoveredByHero)
+            if (turnsToGetCaughtByThisZombie < turnsToBeCoveredByHero)
             {
                 this.Doomed = true;
             }

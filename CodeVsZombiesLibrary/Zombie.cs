@@ -9,7 +9,6 @@ namespace CodeVsZombiesLibrary
         public const int UndefinedTurnsToNearestHuman = -1;
         private const int _zombieSpeed = 400;
 
-        public int TurnsToNearestHuman {get; private set;}
         public bool NextTargetIsHero {get; private set;}
         
         private Human _nearestHuman;
@@ -81,6 +80,21 @@ namespace CodeVsZombiesLibrary
             return this._nearestHuman;
         }
 
+        public int GetTurnsToNearestHuman(IEnumerable<Human> humans)
+        {
+            if (humans is null) throw new ArgumentNullException(nameof(humans));            
+            if (!humans.Any()) throw new InvalidOperationException("There must be at least one human");
+
+            if (this._turnsToNearestHuman != UndefinedTurnsToNearestHuman)
+            {
+                return this._turnsToNearestHuman;
+            }
+
+            Human nearestHuman = this.GetNearestHuman(humans);
+            this._turnsToNearestHuman = this.TurnsToBeInRange(nearestHuman.Pos, 0);
+            return this._turnsToNearestHuman;
+        }
+
         public void UpdateTarget(Hero hero, IEnumerable<Human> humans)
         {
             if (hero is null) throw new ArgumentNullException(nameof(hero));
@@ -102,10 +116,8 @@ namespace CodeVsZombiesLibrary
                 }
             }
 
-            this._nearestHuman = nearestHuman;
-            this.TurnsToNearestHuman = this.TurnsToBeInRange(this.Pos, nearestHuman.Pos, 0);
             this.NextTargetIsHero = distToHero < distToNearestHuman;
-            this._targetPos = this.NextTargetIsHero ? hero.Pos : this._nearestHuman.Pos;
+            this._targetPos = this.NextTargetIsHero ? hero.Pos : nearestHuman.Pos;
         }
 
         public Position GetNextPosition()
