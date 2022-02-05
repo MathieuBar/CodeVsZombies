@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
 
 namespace CodeVsZombiesLibrary
 {
@@ -9,13 +8,10 @@ namespace CodeVsZombiesLibrary
     {
         public event EventHandler NewTurnStarted;
 
-        public Position NextZombiesBarycentre => this.GetNextZombiesBarycentre();
-
         private Hero Ash { get; set; }
         private Dictionary<int, Human> Humans { get; set; }
-        private ISet<int> HumansAlive { get; set; }
         private Dictionary<int, Zombie> Zombies { get; set; }
-        private ISet<int> ZombiesAlive { get; set; }
+        
         private Position _nextZombiesBarycentre;
 
         public Player(Inputs startInputs)
@@ -28,19 +24,15 @@ namespace CodeVsZombiesLibrary
             this.Ash = new Hero(startInputs, this);
 
             this.Humans = new Dictionary<int, Human>(startInputs.HumanCount);
-            this.HumansAlive = new HashSet<int>(startInputs.HumanCount);
             foreach (HumanInputs hi in startInputs.HumansInputs)
             {
                 this.AddHuman(hi);
-                this.HumansAlive.Add(hi.Id);
             }
 
             this.Zombies = new Dictionary<int, Zombie>(startInputs.ZombieCount);
-            this.ZombiesAlive = new HashSet<int>(startInputs.ZombieCount);
             foreach (ZombieInputs zi in startInputs.ZombieInputs)
             {
                 this.AddZombie(zi);
-                this.ZombiesAlive.Add(zi.Id);
             }
 
             this._nextZombiesBarycentre = Position.UndefinedPos;
@@ -60,6 +52,7 @@ namespace CodeVsZombiesLibrary
             {
                 this.Zombies[zi.Id].UpdateFromNewInputs(zi);
             }
+
             this._nextZombiesBarycentre = Position.UndefinedPos;
             this.UpdateHumansThreats();
         }
@@ -93,7 +86,7 @@ namespace CodeVsZombiesLibrary
 
         public Position GetNextHeroTarget()
         {
-            Position target = this.NextZombiesBarycentre;
+            Position target = this.GetNextZombiesBarycentre();
             Inputs nextInputs = this.SimulateNextMove(target);
             Player playerNextTurn = new Player(nextInputs);
             
@@ -111,6 +104,29 @@ namespace CodeVsZombiesLibrary
             return target;
         }
 
+        /// <summary>
+        /// Gets the barycentre of next positions of zombies
+        /// </summary>
+        /// <remarks>
+        /// Lazy getter. 
+        /// !!! 
+        /// Private field <cref name="_zombiesBarycentre"/> must be set to 
+        /// <cref name="Position.UndefinedPos"/> at each change in zombies
+        /// number or positions
+        /// !!!
+        /// </remarks>
+        /// <returns>the barycentre of next positions of zombies</returns>
+        public Position GetNextZombiesBarycentre()
+        {
+            if (this._nextZombiesBarycentre.Equals(Position.UndefinedPos))
+            {
+                this._nextZombiesBarycentre = Position.FindBarycentre(
+                    this.Zombies.Values.Select(z => z.GetNextPosition(this.Ash, this.Humans.Values)));
+            }
+
+            return this._nextZombiesBarycentre;
+        }
+        
         private Inputs SimulateNextMove(Position target)
         {
             // inputs from present states
@@ -163,9 +179,7 @@ namespace CodeVsZombiesLibrary
 
             if (newHumanCount < this.Humans.Count)
             {
-                this.HumansAlive.Clear();
-                this.HumansAlive.UnionWith(humansInputs.Select(hi => hi.Id));
-                IEnumerable<int> deadHumans = this.Humans.Keys.Except(this.HumansAlive);
+                IEnumerable<int> deadHumans = this.Humans.Keys.Except(humansInputs.Select(hi => hi.Id));
                 foreach (int id in deadHumans)
                 {
                     this.Humans.Remove(id);
@@ -182,9 +196,7 @@ namespace CodeVsZombiesLibrary
 
             if (newZombieCount < this.Zombies.Count)
             {
-                this.ZombiesAlive.Clear();
-                this.ZombiesAlive.UnionWith(zombiesInputs.Select(zi => zi.Id));
-                IEnumerable<int> deadZombies = this.Zombies.Keys.Except(this.ZombiesAlive);
+                IEnumerable<int> deadZombies = this.Zombies.Keys.Except(zombiesInputs.Select(zi => zi.Id));
                 foreach (int id in deadZombies)
                 {
                     this.Zombies.Remove(id);
@@ -205,30 +217,6 @@ namespace CodeVsZombiesLibrary
                 int turnsToBeCoveredByHero = this.Ash.GetTurnsToGetInRangeToHuman(human);
                 human.AddThreateningZombie(zombie, this.Ash, this.Humans.Values);
             }
-        }
-
-        /// <summary>
-        /// Gets the barycentre of next positions of zombies
-        /// </summary>
-        /// <remarks>
-        /// Lazy getter. 
-        /// !!! 
-        /// Private field <cref name="_zombiesBarycentre"/> must be set to 
-        /// <cref name="Position.UndefinedPos"/> at each change in zombies
-        /// number or positions
-        /// !!!
-        /// </remarks>
-        /// <returns>the barycentre of next positions of zombies</returns>
-        /// <exception cref="NotImplementedException"></exception>
-        private Position GetNextZombiesBarycentre()
-        {
-            if (this._nextZombiesBarycentre.Equals(Position.UndefinedPos))
-            {
-                this._nextZombiesBarycentre = Position.FindBarycentre(
-                    this.Zombies.Values.Select(z => z.GetNextPosition(this.Ash, this.Humans.Values)));
-            }
-
-            return this._nextZombiesBarycentre;
         }
     }
 }
