@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace CodeVsZombiesLibrary
@@ -9,7 +10,8 @@ namespace CodeVsZombiesLibrary
         public int ThreateningZombiesCount => this.ThreateningZombies.Count;
         private ISet<int> ThreateningZombies { get; set; }
 
-        public Human(int id, int xPos, int yPos): base(id, xPos, yPos)
+        public Human(int id, int xPos, int yPos, Player owner = null):
+            base(id, xPos, yPos, owner)
         {
             this.Speed = 0;
             this.Doomed = false;
@@ -17,7 +19,7 @@ namespace CodeVsZombiesLibrary
             this.TurnsBeforeBeingCaught = int.MaxValue;
         }
 
-        public Human(HumanInputs hi): this(hi.Id, hi.X, hi.Y)
+        public Human(HumanInputs hi, Player owner = null): this(hi.Id, hi.X, hi.Y, owner)
         {
             // nothing to add
         }
@@ -54,7 +56,12 @@ namespace CodeVsZombiesLibrary
         {
             this.ThreateningZombies.Clear();
             this.TurnsBeforeBeingCaught = int.MaxValue;
+            this.Doomed = false;
         }
-        
+
+        protected override void OnNewTurnStarted(object sender, EventArgs eventArgs)
+        {
+            this.ClearThreateningZombies();
+        }        
     }
 }

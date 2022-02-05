@@ -1,18 +1,22 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 namespace CodeVsZombiesLibrary
 {
     public class Player
     {
+        public event EventHandler NewTurnStarted;
+
+        public Position NextZombiesBarycentre => this.GetNextZombiesBarycentre();
+
         private Hero Ash { get; set; }
         private Dictionary<int, Human> Humans { get; set; }
         private ISet<int> HumansAlive { get; set; }
         private Dictionary<int, Zombie> Zombies { get; set; }
         private ISet<int> ZombiesAlive { get; set; }
         private Position _nextZombiesBarycentre;
-        public Position NextZombiesBarycentre => this.GetNextZombiesBarycentre();
 
         public Player(Inputs startInputs)
         {
@@ -21,7 +25,7 @@ namespace CodeVsZombiesLibrary
 
         public void InitFromInputs(Inputs startInputs)
         {
-            this.Ash = new Hero(startInputs);
+            this.Ash = new Hero(startInputs, this);
 
             this.Humans = new Dictionary<int, Human>(startInputs.HumanCount);
             this.HumansAlive = new HashSet<int>(startInputs.HumanCount);
@@ -38,6 +42,9 @@ namespace CodeVsZombiesLibrary
                 this.AddZombie(zi);
                 this.ZombiesAlive.Add(zi.Id);
             }
+
+            this.NewTurnStarted?.Invoke(this, EventArgs.Empty);
+
             this._nextZombiesBarycentre = Position.UndefinedPos;
             this.Ash.UpdateDistancesToHumans(this.Humans.Values);
             this.UpdateZombiesTargets();
@@ -46,6 +53,8 @@ namespace CodeVsZombiesLibrary
 
         public void UpdateFromNewInputs(Inputs newTurnInputs)
         {
+            this.NewTurnStarted?.Invoke(this, EventArgs.Empty);
+
             this.UpdateAshPos(newTurnInputs.X, newTurnInputs.Y);
 
             this.UpdateDeadHumans(newTurnInputs.HumanCount, newTurnInputs.HumansInputs);
@@ -138,12 +147,12 @@ namespace CodeVsZombiesLibrary
 
         private void AddHuman(HumanInputs hi)
         {
-            this.Humans.Add(hi.Id, new Human(hi));
+            this.Humans.Add(hi.Id, new Human(hi, this));
         }
 
         private void AddZombie(ZombieInputs zi)
         {
-            this.Zombies.Add(zi.Id, new Zombie(zi));
+            this.Zombies.Add(zi.Id, new Zombie(zi, this));
         }
 
         private void UpdateAshPos(int x, int y)

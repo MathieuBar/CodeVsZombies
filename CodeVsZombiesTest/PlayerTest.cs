@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.Tracing;
 using System.Linq;
 using CodeVsZombiesLibrary;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -55,6 +56,36 @@ namespace CodeVsZombiesTest
             Position res = p.NextZombiesBarycentre;
             Assert.AreEqual(expectedBarycentre.X, res.X);
             Assert.AreEqual(expectedBarycentre.Y, res.Y);
+        }
+
+        [TestMethod]
+        public void InitFromInputs_NewTurnStarted_EventSent()
+        {
+            Inputs inputs = InputsGenerator.GenerateInputs(CodingGameTestCase.Simple);
+            Player p = new Player(inputs);
+            bool eventReceived = false;
+            EventHandler onNewTurnStarted = (sender, eventArgs) =>
+                eventReceived = true;
+            p.NewTurnStarted += onNewTurnStarted;
+
+            p.InitFromInputs(inputs);
+
+            Assert.IsTrue(eventReceived);
+        }
+
+        [TestMethod]
+        public void UpdateFromNewInputs_NewTurnStarted_EventSent()
+        {
+            Inputs inputs = InputsGenerator.GenerateInputs(CodingGameTestCase.Simple);
+            Player p = new Player(inputs);
+            bool eventReceived = false;
+            EventHandler onNewTurnStarted = (sender, eventArgs) =>
+                eventReceived = true;
+            p.NewTurnStarted += onNewTurnStarted;
+
+            p.UpdateFromNewInputs(inputs);
+
+            Assert.IsTrue(eventReceived);
         }
 
         [TestMethod]

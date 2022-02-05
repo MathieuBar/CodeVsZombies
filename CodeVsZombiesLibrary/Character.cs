@@ -6,11 +6,18 @@ namespace CodeVsZombiesLibrary
         public int Id {get; private set;}
         public Position Pos {get; private set;}
         public int Speed {get; protected set;}
+        protected Player Owner { get; private set; }
 
-        public Character(int id, int xPos, int yPos)
+        public Character(int id, int xPos, int yPos, Player owner = null)
         {
             this.Id = id;
             this.Pos = new Position(xPos, yPos);
+            this.Owner = owner;
+
+            if (owner != null)
+            {
+                owner.NewTurnStarted += OnNewTurnStarted;
+            }
         }
 
         public void UpdatePosition(Position pos)
@@ -19,9 +26,7 @@ namespace CodeVsZombiesLibrary
         }
 
         public void UpdatePosition(int x, int y)
-        {
-            this.Pos = new Position(x, y);
-        }
+            => this.UpdatePosition(new Position(x, y));
 
         public Position ComputeNextPos(Position targetPos)
         {
@@ -85,6 +90,11 @@ namespace CodeVsZombiesLibrary
             }
 
             return result;
+        }
+
+        protected virtual void OnNewTurnStarted(object sender, EventArgs eventArgs)
+        {
+            // Nothing to do in Character class. To be implemented in derived classes.
         }
     }
 }

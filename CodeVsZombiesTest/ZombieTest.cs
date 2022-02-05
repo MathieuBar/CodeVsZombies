@@ -197,5 +197,28 @@ namespace CodeVsZombiesTest
 
             Assert.AreEqual(expected.X, res.X);
         }
+
+        [TestMethod]
+        public void OnNewTurnStarted_NewTurn_TargetsCleared()
+        {
+            Inputs inputs = InputsGenerator.GenerateInputs(CodingGameTestCase.Simple);
+            Player p = new Player(inputs);
+            Hero hero = new Hero(5000, 0);
+            Zombie zombie = new Zombie(0, 0, 400, 0, 0, p);
+            Human human = new Human(0, 0, 0, p);
+            List<Human> humans = new List<Human>() { human };
+            // set zombie target to human
+            zombie.UpdateTarget(hero, humans);
+            // check that init is well done
+            Assert.AreEqual(human.Id, zombie.NextNearestHuman.Id);
+            Assert.AreEqual(1, zombie.TurnsToNearestHuman);
+
+            // send NewTurnStarted event
+            p.UpdateFromNewInputs(inputs); 
+
+            // Check that target data is cleared
+            Assert.IsNull(zombie.NextNearestHuman);
+            Assert.AreEqual(Zombie.UndefinedTurnsToNearestHuman, zombie.TurnsToNearestHuman);
+        }
     }
 }

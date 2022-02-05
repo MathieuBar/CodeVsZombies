@@ -6,6 +6,7 @@ namespace CodeVsZombiesLibrary
 {
     public class Zombie: Character
     {
+        public const int UndefinedTurnsToNearestHuman = -1;
         private const int _zombieSpeed = 400;
 
         public Position NextPosition => this.GetNextPosition();
@@ -18,21 +19,22 @@ namespace CodeVsZombiesLibrary
         private Position _computedNextPosition;
 
 
-        public Zombie(int id, int xPos, int yPos, int nextXPos, int nextYPos): 
-            base(id, xPos, yPos)
+        public Zombie(int id, int xPos, int yPos, int nextXPos, int nextYPos, Player owner = null): 
+            base(id, xPos, yPos, owner)
         {
             this._givenNextPosition = new Position(nextXPos, nextYPos);
             this.Speed = Zombie._zombieSpeed;
             this.ClearStatefullData();
         }
 
-        public Zombie(int id, int xPos, int yPos): this(
-            id, xPos, yPos, Position.UndefinedPos.X, Position.UndefinedPos.Y)
+        public Zombie(int id, int xPos, int yPos, Player owner = null): this(
+            id, xPos, yPos, Position.UndefinedPos.X, Position.UndefinedPos.Y, owner)
         {
             // nothing to add
         }
 
-        public Zombie(ZombieInputs zi): this(zi.Id, zi.X, zi.Y, zi.XNext, zi.YNext)
+        public Zombie(ZombieInputs zi, Player owner = null): 
+            this(zi.Id, zi.X, zi.Y, zi.XNext, zi.YNext, owner)
         {
             // nothing to add
         }
@@ -85,7 +87,7 @@ namespace CodeVsZombiesLibrary
             this._computedNextPosition = Position.UndefinedPos;
             this._targetPos = Position.UndefinedPos;
             this.NextNearestHuman = null;
-            this.TurnsToNearestHuman = -1;
+            this.TurnsToNearestHuman = UndefinedTurnsToNearestHuman;
             this.NextTargetIsHero = false;
         }
 
@@ -116,5 +118,10 @@ namespace CodeVsZombiesLibrary
             this._computedNextPosition = this.ComputeNextPos(this._targetPos);
             return this._computedNextPosition;
         }
+
+        protected override void OnNewTurnStarted(object sender, EventArgs eventArgs)
+        {
+            this.ClearStatefullData();
+        }   
     }
 }

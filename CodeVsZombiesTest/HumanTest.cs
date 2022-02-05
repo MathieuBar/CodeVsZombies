@@ -210,5 +210,31 @@ namespace CodeVsZombiesTest
             Assert.AreEqual(0, human.ThreateningZombiesCount);
             Assert.AreEqual(int.MaxValue, human.TurnsBeforeBeingCaught);
         }
+
+        [TestMethod]
+        public void OnNewTurnStarted_NewTurn_ThreatsDataCleared()
+        {
+            Inputs inputs = InputsGenerator.GenerateInputs(CodingGameTestCase.Simple);
+            Player p = new Player(inputs);
+            Hero hero = new Hero(5000, 0);
+            Zombie zombie = new Zombie(0, 0, 400, 0, 0);
+            Human human = new Human(0, 0, 0, p);
+            List<Human> humans = new List<Human>() { human };
+            // set zombie target to human and add threatening zombie to human threats
+            zombie.UpdateTarget(hero, humans);
+            human.AddThreateningZombie(zombie, 3);
+            // check that init is well done
+            Assert.AreEqual(1, human.ThreateningZombiesCount);
+            Assert.AreEqual(1, human.TurnsBeforeBeingCaught);
+            Assert.IsTrue(human.Doomed);
+
+            // send NewTurnStarted event
+            p.UpdateFromNewInputs(inputs); 
+
+            // check that Threats data is cleared
+            Assert.AreEqual(0, human.ThreateningZombiesCount);
+            Assert.AreEqual(int.MaxValue, human.TurnsBeforeBeingCaught);
+            Assert.IsFalse(human.Doomed);
+        }
     }
 }

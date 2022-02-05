@@ -11,18 +11,20 @@ namespace CodeVsZombiesLibrary
         
         private Dictionary<int, int> TurnsToGetInRangeToHuman { get; set; }
 
-        public Hero(int id, int xPos, int yPos): base(id, xPos, yPos)
+        public Hero(int id, int xPos, int yPos, Player owner = null): 
+            base(id, xPos, yPos, owner)
         {
             this.Speed = Hero._heroSpeed;
             this.TurnsToGetInRangeToHuman = new Dictionary<int, int>();
         }
 
-        public Hero(int xPos, int yPos): this(DefaultHeroId, xPos, yPos)
+        public Hero(int xPos, int yPos, Player owner = null): 
+            this(DefaultHeroId, xPos, yPos, owner)
         {
             // nothing to add
         }
 
-        public Hero(Inputs inputs): this(inputs.X, inputs.Y)
+        public Hero(Inputs inputs, Player owner = null): this(inputs.X, inputs.Y, owner)
         {
             // nothing to add
         }
@@ -48,6 +50,11 @@ namespace CodeVsZombiesLibrary
             {
                 this.TurnsToGetInRangeToHuman[human.Id] = this.TurnsToBeInShootRange(human.Pos);
             }
+        }
+
+        protected override void OnNewTurnStarted(object sender, EventArgs eventArgs)
+        {
+            this.TurnsToGetInRangeToHuman.Clear();
         }
     }
 }
