@@ -34,22 +34,15 @@ namespace CodeVsZombiesLibrary
             return this.TurnsToBeInRange(targetPos, Hero.ShootRange);
         }
 
-        public int GetTurnsToGetInRangeToHuman(int humanId)
+        public int GetTurnsToGetInRangeToHuman(Human human)
         {
-            bool hasValue = this.TurnsToGetInRangeToHuman.TryGetValue(humanId, out int result);
+            bool hasValue = this.TurnsToGetInRangeToHuman.TryGetValue(human.Id, out int result);
             if (!hasValue)
             {
-                throw new ArgumentOutOfRangeException(nameof(humanId), $"Unknown distance in turns to human id {humanId}");
+                result = this.TurnsToBeInShootRange(human.Pos);
+                this.TurnsToGetInRangeToHuman[human.Id] = result;
             }
-            return(result);
-        }
-
-        public void UpdateDistancesToHumans(IEnumerable<Human> humans)
-        {
-            foreach (Human human in humans)
-            {
-                this.TurnsToGetInRangeToHuman[human.Id] = this.TurnsToBeInShootRange(human.Pos);
-            }
+            return result;
         }
 
         protected override void OnNewTurnStarted(object sender, EventArgs eventArgs)

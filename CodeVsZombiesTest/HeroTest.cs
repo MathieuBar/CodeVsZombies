@@ -217,43 +217,50 @@ namespace CodeVsZombiesTest
         }
 
         [TestMethod]
-        public void UpdateDistancesToHumans_InitWithTwoHumans_GoodDistances()
+        public void GetTurnsToGetInRangeToHuman_DistanceNotSet_GoodDistance()
         {
-            throw new AssertInconclusiveException();            
+            Hero hero = new Hero(0, 0, null);
+            Human human = new Human(0, 3000, 0, null);
+
+            int result = hero.GetTurnsToGetInRangeToHuman(human);
+
+            Assert.AreEqual(1, result);
         }
 
         [TestMethod]
-        public void UpdateDistancesToHumans_UpdateDistances_GoodDistances()
+        public void GetTurnsToGetInRangeToHuman_DistanceAlreadySet_GoodDistance()
         {
-            throw new AssertInconclusiveException();            
+            Hero hero = new Hero(0, 0, null);
+            Human human = new Human(0, 3000, 0, null);
+
+            int result = hero.GetTurnsToGetInRangeToHuman(human);
+            hero.UpdatePosition(0, 1000);
+            int result2 = hero.GetTurnsToGetInRangeToHuman(human);
+
+            // result should not be affected by hero position modification, without new turn event
+            Assert.AreEqual(result, result2);
         }
 
         [TestMethod]
-        public void GetTurnsToGetInRangeToHuman_DistanceNotSet_ThrowsArgumentOutOfRangeException()
-        {
-            Hero h = new Hero(0, 0);
-
-            Assert.ThrowsException<ArgumentOutOfRangeException>(() => h.GetTurnsToGetInRangeToHuman(0));
-        }
-
-        [TestMethod]
-        public void OnNewTurnStarted_NewTurn_DistanceInTurnsToHumansCleared()
+        public void GetTurnsToGetInRangeToHuman_NewTurn_DistanceInTurnsUpdated()
         {
             Inputs inputs = InputsGenerator.GenerateInputs(CodingGameTestCase.Simple);
             Player p = new Player(inputs);
-            Hero hero = new Hero(0, 0, p); // hero receive events from p, but is not managed by p
-            List<Human> humans = new List<Human>() { new Human(0, 0, 0) };
-            // set distance from hero to human id 0;
-            hero.UpdateDistancesToHumans(humans); 
+            Hero hero = new Hero(0, 0, p); // hero receive events from p, even if it is not really owned by p
+            Human human = new Human(0, 3000, 0, null);
+
             // check that init is well done
-            int turnsToHuman0 = hero.GetTurnsToGetInRangeToHuman(0);
-            Assert.AreEqual(0, turnsToHuman0);
+            int turnsToHumanAtFirst = hero.GetTurnsToGetInRangeToHuman(human);
+            Assert.AreEqual(1, turnsToHumanAtFirst);
 
             // send NewTurnStarted event, which is expected to reset distances to humans
             p.UpdateFromNewInputs(inputs); 
 
-            // check that GetTurnsToGetInRangeToHuman throws exception
-            Assert.ThrowsException<ArgumentOutOfRangeException>(() => hero.GetTurnsToGetInRangeToHuman(0));
+            // GetTurnsToGetInRangeToHuman should return up to date value
+            hero.UpdatePosition(1000, 0);
+            int turnsToHumanUpdated = hero.GetTurnsToGetInRangeToHuman(human);
+
+            Assert.AreEqual(0, turnsToHumanUpdated);
         }
     }
 }

@@ -46,7 +46,6 @@ namespace CodeVsZombiesLibrary
             this.NewTurnStarted?.Invoke(this, EventArgs.Empty);
 
             this._nextZombiesBarycentre = Position.UndefinedPos;
-            this.Ash.UpdateDistancesToHumans(this.Humans.Values);
             this.UpdateZombiesTargets();
             this.UpdateHumansThreats();
         }
@@ -65,7 +64,6 @@ namespace CodeVsZombiesLibrary
                 this.Zombies[zi.Id].UpdateFromNewInputs(zi);
             }
             this._nextZombiesBarycentre = Position.UndefinedPos;
-            this.Ash.UpdateDistancesToHumans(this.Humans.Values);
             this.UpdateZombiesTargets();
             this.UpdateHumansThreats();
         }
@@ -216,7 +214,7 @@ namespace CodeVsZombiesLibrary
             foreach(Zombie zombie in this.Zombies.Values.Where(z => z.NextNearestHuman != null))
             {
                 Human human = zombie.NextNearestHuman;
-                int turnsToBeCoveredByHero = this.Ash.GetTurnsToGetInRangeToHuman(human.Id);
+                int turnsToBeCoveredByHero = this.Ash.GetTurnsToGetInRangeToHuman(human);
                 human.AddThreateningZombie(zombie, turnsToBeCoveredByHero);
             }
         }
