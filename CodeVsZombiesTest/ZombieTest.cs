@@ -64,7 +64,7 @@ namespace CodeVsZombiesTest
 
 
         [TestMethod]
-        public void UpdateTarget_OneHuman_HumanIsNearest()
+        public void NextTargetIsHero_OneHuman_HumanIsNearest()
         {
             Inputs inputs = ZombieTest.GenerateInputs(ZombieTestCase.OneZombieOneHuman);
             Zombie zombie = new Zombie(inputs.ZombieInputs[0]);
@@ -77,7 +77,7 @@ namespace CodeVsZombiesTest
         }
 
         [TestMethod]
-        public void UpdateTarget_OneHuman_HeroIsNearest()
+        public void NextTargetIsHero_OneHuman_HeroIsNearest()
         {
             Inputs inputs = ZombieTest.GenerateInputs(ZombieTestCase.OneZombieOneHuman);
             Zombie zombie = new Zombie(inputs.ZombieInputs[0]);
@@ -90,7 +90,64 @@ namespace CodeVsZombiesTest
         }
 
         [TestMethod]
-        public void UpdateTarget_OneHuman_GoodTargetGoodDistance()
+        public void GetNearestHuman_OneHuman_GoodTarget()
+        {
+            Inputs inputs = ZombieTest.GenerateInputs(ZombieTestCase.OneZombieOneHuman);
+            Zombie zombie = new Zombie(inputs.ZombieInputs[0]);
+            IEnumerable<Human> humans = inputs.HumansInputs.Select(hi => new Human(hi));
+
+            Human result = zombie.GetNearestHuman(humans);
+
+            Assert.AreEqual(0, result.Id);
+        }
+
+
+        [TestMethod]
+        public void GetNearestHuman_OneClearlyNearest_GoodTarget()
+        {
+            Inputs inputs = ZombieTest.GenerateInputs(ZombieTestCase.ZombieClearyNearerToOneOfTwoHumans);
+            Zombie zombie = new Zombie(inputs.ZombieInputs[0]);
+            IEnumerable<Human> humans = inputs.HumansInputs.Select(hi => new Human(hi));
+
+            Human result = zombie.GetNearestHuman(humans);
+
+            Assert.AreEqual(1, result.Id);
+        }
+
+        [TestMethod]
+        public void GetNearestHuman_NearlySameDistance_AlwaysTheNearest()
+        {
+            Inputs inputs = ZombieTest.GenerateInputs(ZombieTestCase.ZombieBarelyNearerToOneOfTwoHumans);
+            Zombie zombie1 = new Zombie(inputs.ZombieInputs[0]);
+            IEnumerable<Human> humans = inputs.HumansInputs.Select(hi => new Human(hi));
+            Zombie zombie2 = new Zombie(inputs.ZombieInputs[0]);
+            IEnumerable<Human> humansReverse = humans.Reverse();
+
+            Human result1 = zombie1.GetNearestHuman(humans);
+            Human result2 = zombie2.GetNearestHuman(humansReverse);
+
+            Assert.AreEqual(0, result1.Id);
+            Assert.AreEqual(0, result2.Id);
+        }
+
+        [TestMethod]
+        public void GetNearestHuman_ExactSameDistance_LowestId()
+        {
+            Inputs inputs = ZombieTest.GenerateInputs(ZombieTestCase.ZombieAtExactSameDistanceOfTwoHumans);
+            Zombie zombie1 = new Zombie(inputs.ZombieInputs[0]);
+            IEnumerable<Human> humans = inputs.HumansInputs.Select(hi => new Human(hi));
+            Zombie zombie2 = new Zombie(inputs.ZombieInputs[0]);
+            IEnumerable<Human> humansReverse = humans.Reverse();
+
+            Human result1 = zombie1.GetNearestHuman(humans);
+            Human result2 = zombie2.GetNearestHuman(humansReverse);
+
+            Assert.AreEqual(0, result1.Id);
+            Assert.AreEqual(0, result2.Id);
+        }
+
+        [TestMethod]
+        public void TurnsToNearestHuman_OneHuman_GoodDistance()
         {
             Inputs inputs = ZombieTest.GenerateInputs(ZombieTestCase.OneZombieOneHuman);
             Zombie zombie = new Zombie(inputs.ZombieInputs[0]);
@@ -98,60 +155,13 @@ namespace CodeVsZombiesTest
             Hero hero = new Hero(inputs);
 
             zombie.UpdateTarget(hero, humans);
+            int result = zombie.TurnsToNearestHuman;
 
-            Assert.AreEqual(zombie.NextNearestHuman.Id, 0);
-            Assert.AreEqual(zombie.TurnsToNearestHuman, 4);
+            Assert.AreEqual(4, result);
         }
 
         [TestMethod]
-        public void UpdateTarget_OneClearlyNearest_GoodTarget()
-        {
-            Inputs inputs = ZombieTest.GenerateInputs(ZombieTestCase.ZombieClearyNearerToOneOfTwoHumans);
-            Zombie zombie = new Zombie(inputs.ZombieInputs[0]);
-            IEnumerable<Human> humans = inputs.HumansInputs.Select(hi => new Human(hi));
-            Hero hero = new Hero(inputs);
-
-            zombie.UpdateTarget(hero, humans);
-
-            Assert.AreEqual(zombie.NextNearestHuman.Id, 1);
-        }
-
-        [TestMethod]
-        public void UpdateTarget_NearlySameDistance_AlwaysTheNearest()
-        {
-            Inputs inputs = ZombieTest.GenerateInputs(ZombieTestCase.ZombieBarelyNearerToOneOfTwoHumans);
-            Zombie zombie1 = new Zombie(inputs.ZombieInputs[0]);
-            IEnumerable<Human> humans = inputs.HumansInputs.Select(hi => new Human(hi));
-            Zombie zombie2 = new Zombie(inputs.ZombieInputs[0]);
-            IEnumerable<Human> humansReverse = humans.Reverse();
-            Hero hero = new Hero(inputs);
-
-            zombie1.UpdateTarget(hero, humans);
-            zombie2.UpdateTarget(hero, humansReverse);
-
-            Assert.AreEqual(zombie1.NextNearestHuman.Id, 0);
-            Assert.AreEqual(zombie2.NextNearestHuman.Id, 0);
-        }
-
-        [TestMethod]
-        public void UpdateTarget_ExactSameDistance_LowestId()
-        {
-            Inputs inputs = ZombieTest.GenerateInputs(ZombieTestCase.ZombieAtExactSameDistanceOfTwoHumans);
-            Zombie zombie1 = new Zombie(inputs.ZombieInputs[0]);
-            IEnumerable<Human> humans = inputs.HumansInputs.Select(hi => new Human(hi));
-            Zombie zombie2 = new Zombie(inputs.ZombieInputs[0]);
-            IEnumerable<Human> humansReverse = humans.Reverse();
-            Hero hero = new Hero(inputs);
-
-            zombie1.UpdateTarget(hero, humans);
-            zombie2.UpdateTarget(hero, humansReverse);
-
-            Assert.AreEqual(zombie1.NextNearestHuman.Id, 0);
-            Assert.AreEqual(zombie2.NextNearestHuman.Id, 0);
-        }
-
-        [TestMethod]
-        public void NextPosition_GivenNextPos_GivenNextPos()
+        public void GetNextPosition_GivenNextPos_GivenNextPos()
         {
             Hero hero = new Hero(0, 0);
             IEnumerable<Human> humans = new List<Human>{
@@ -161,13 +171,13 @@ namespace CodeVsZombiesTest
             Position expected = new Position(5000, 5000);
 
             zombie.UpdateTarget(hero, humans);
-            Position res = zombie.NextPosition;
+            Position res = zombie.GetNextPosition();
 
             Assert.AreEqual(expected.X, res.X);
         }
 
         [TestMethod]
-        public void NextPosition_NoGivenNextPosAndTowardsHuman_GoodComputedNextPos()
+        public void GetNextPosition_NoGivenNextPosAndTowardsHuman_GoodComputedNextPos()
         {
             Hero hero = new Hero(0, 0);
             IEnumerable<Human> humans = new List<Human>{
@@ -177,13 +187,13 @@ namespace CodeVsZombiesTest
             Position expected = new Position(2282, 2282);
 
             zombie.UpdateTarget(hero, humans);
-            Position res = zombie.NextPosition;
+            Position res = zombie.GetNextPosition();
 
             Assert.AreEqual(expected.X, res.X);
         }
 
         [TestMethod]
-        public void NextPosition_NoGivenNextPosAndTowardsHero_GoodComputedNextPos()
+        public void GetNextPosition_NoGivenNextPosAndTowardsHero_GoodComputedNextPos()
         {
             Hero hero = new Hero(0, 0);
             IEnumerable<Human> humans = new List<Human>{
@@ -193,32 +203,9 @@ namespace CodeVsZombiesTest
             Position expected = new Position(717, 717);
 
             zombie.UpdateTarget(hero, humans);
-            Position res = zombie.NextPosition;
+            Position res = zombie.GetNextPosition();
 
             Assert.AreEqual(expected.X, res.X);
-        }
-
-        [TestMethod]
-        public void OnNewTurnStarted_NewTurn_TargetsCleared()
-        {
-            Inputs inputs = InputsGenerator.GenerateInputs(CodingGameTestCase.Simple);
-            Player p = new Player(inputs);
-            Hero hero = new Hero(5000, 0);
-            Zombie zombie = new Zombie(0, 0, 400, 0, 0, p);
-            Human human = new Human(0, 0, 0, p);
-            List<Human> humans = new List<Human>() { human };
-            // set zombie target to human
-            zombie.UpdateTarget(hero, humans);
-            // check that init is well done
-            Assert.AreEqual(human.Id, zombie.NextNearestHuman.Id);
-            Assert.AreEqual(1, zombie.TurnsToNearestHuman);
-
-            // send NewTurnStarted event
-            p.UpdateFromNewInputs(inputs); 
-
-            // Check that target data is cleared
-            Assert.IsNull(zombie.NextNearestHuman);
-            Assert.AreEqual(Zombie.UndefinedTurnsToNearestHuman, zombie.TurnsToNearestHuman);
         }
     }
 }

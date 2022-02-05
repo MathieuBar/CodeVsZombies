@@ -29,10 +29,10 @@ namespace CodeVsZombiesLibrary
             return new HumanInputs(this.Id, this.Pos.X, this.Pos.Y);
         }
 
-        public bool AddThreateningZombie(Zombie zombie, int turnsToBeCoveredByHero)
+        public bool AddThreateningZombie(Zombie zombie, int turnsToBeCoveredByHero, IEnumerable<Human> humans)
         {
             if (zombie.NextTargetIsHero 
-                || zombie.NextNearestHuman != this
+                || zombie.GetNearestHuman(humans) != this
                 || this.ThreateningZombies.Contains(zombie.Id))
             {
                 return false;

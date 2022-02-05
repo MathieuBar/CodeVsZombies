@@ -27,8 +27,7 @@ namespace CodeVsZombiesTest
             );
             Player p = new Player(inputs);
             
-
-            Assert.AreEqual(p.ToInputs().ToString(), inputs.ToString());
+            Assert.AreEqual(inputs.ToString(), p.ToInputs().ToString());
         }
 
 
@@ -59,7 +58,7 @@ namespace CodeVsZombiesTest
         }
 
         [TestMethod]
-        public void InitFromInputs_NewTurnStarted_EventSent()
+        public void InitFromInputs_NewTurnStarted_EventNotSent()
         {
             Inputs inputs = InputsGenerator.GenerateInputs(CodingGameTestCase.Simple);
             Player p = new Player(inputs);
@@ -70,7 +69,7 @@ namespace CodeVsZombiesTest
 
             p.InitFromInputs(inputs);
 
-            Assert.IsTrue(eventReceived);
+            Assert.IsFalse(eventReceived);
         }
 
         [TestMethod]

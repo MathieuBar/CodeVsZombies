@@ -43,8 +43,6 @@ namespace CodeVsZombiesLibrary
                 this.ZombiesAlive.Add(zi.Id);
             }
 
-            this.NewTurnStarted?.Invoke(this, EventArgs.Empty);
-
             this._nextZombiesBarycentre = Position.UndefinedPos;
             this.UpdateZombiesTargets();
             this.UpdateHumansThreats();
@@ -131,10 +129,11 @@ namespace CodeVsZombiesLibrary
             result.ZombieCount = 0;
             foreach(Zombie z in this.Zombies.Values)
             {
+                Position nextZombiePos = z.GetNextPosition();
                 result.AddZombieInputs(
                     z.Id, 
-                    z.NextPosition.X,
-                    z.NextPosition.Y,
+                    nextZombiePos.X,
+                    nextZombiePos.Y,
                     Position.UndefinedPos.X,
                     Position.UndefinedPos.Y
                     );
@@ -211,11 +210,11 @@ namespace CodeVsZombiesLibrary
                 human.ClearThreateningZombies();
             }
 
-            foreach(Zombie zombie in this.Zombies.Values.Where(z => z.NextNearestHuman != null))
+            foreach(Zombie zombie in this.Zombies.Values.Where(z => z.GetNearestHuman(this.Humans.Values) != null))
             {
-                Human human = zombie.NextNearestHuman;
+                Human human = zombie.GetNearestHuman(this.Humans.Values);
                 int turnsToBeCoveredByHero = this.Ash.GetTurnsToGetInRangeToHuman(human);
-                human.AddThreateningZombie(zombie, turnsToBeCoveredByHero);
+                human.AddThreateningZombie(zombie, turnsToBeCoveredByHero, this.Humans.Values);
             }
         }
 
@@ -237,7 +236,7 @@ namespace CodeVsZombiesLibrary
             if (this._nextZombiesBarycentre.Equals(Position.UndefinedPos))
             {
                 this._nextZombiesBarycentre = Position.FindBarycentre(
-                    this.Zombies.Values.Select(z => z.NextPosition));
+                    this.Zombies.Values.Select(z => z.GetNextPosition()));
             }
 
             return this._nextZombiesBarycentre;
