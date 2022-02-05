@@ -13,7 +13,6 @@ namespace CodeVsZombiesLibrary
         private double _distToNearestHuman;
         private int _turnsToNearestHuman;
         private bool? _nextTargetIsHero;
-        private Position _targetPos;
         private Position _givenNextPosition;
         private Position _computedNextPosition;
 
@@ -128,20 +127,12 @@ namespace CodeVsZombiesLibrary
             return this._nextTargetIsHero.Value;
         }
 
-        public void UpdateTarget(Hero hero, IEnumerable<Human> humans)
+        public Position GetNextPosition(Hero hero, IEnumerable<Human> humans)
         {
             if (hero is null) throw new ArgumentNullException(nameof(hero));
             if (humans is null) throw new ArgumentNullException(nameof(humans));
             if (!humans.Any()) throw new InvalidOperationException("There must be at least one human");
 
-            bool nextTargetIsHero = this.GetNextTargetIsHero(hero, humans);
-
-
-            this._targetPos = nextTargetIsHero ? hero.Pos : this.GetNearestHuman(humans).Pos;
-        }
-
-        public Position GetNextPosition()
-        {
             // Next position has been given => return given next position
             if (!this._givenNextPosition.Equals(Position.UndefinedPos))
             {
@@ -154,17 +145,10 @@ namespace CodeVsZombiesLibrary
                 return _computedNextPosition;
             }
 
-            // No next position given nor computed => _targetPos must have been set to continue
-            if (this._targetPos.Equals(Position.UndefinedPos))
-            {
-                throw new InvalidOperationException(
-                    "Unable to give next position when the next position  " +
-                    "was not given and target position is not set yet. " +
-                    "Update targets first !");
-            }
-
-            // No next position given nor computed, but targetPos is known => compute next pos
-            this._computedNextPosition = this.ComputeNextPos(this._targetPos);
+            // No next position given nor computed => compute next pos
+            bool nextTargetIsHero = this.GetNextTargetIsHero(hero, humans);
+            Position targetPos = nextTargetIsHero ? hero.Pos : this.GetNearestHuman(humans).Pos;
+            this._computedNextPosition = this.ComputeNextPos(targetPos);
             return this._computedNextPosition;
         }
 

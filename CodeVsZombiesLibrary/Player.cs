@@ -44,7 +44,6 @@ namespace CodeVsZombiesLibrary
             }
 
             this._nextZombiesBarycentre = Position.UndefinedPos;
-            this.UpdateZombiesTargets();
             this.UpdateHumansThreats();
         }
 
@@ -62,7 +61,6 @@ namespace CodeVsZombiesLibrary
                 this.Zombies[zi.Id].UpdateFromNewInputs(zi);
             }
             this._nextZombiesBarycentre = Position.UndefinedPos;
-            this.UpdateZombiesTargets();
             this.UpdateHumansThreats();
         }
 
@@ -98,7 +96,6 @@ namespace CodeVsZombiesLibrary
             Position target = this.NextZombiesBarycentre;
             Inputs nextInputs = this.SimulateNextMove(target);
             Player playerNextTurn = new Player(nextInputs);
-            playerNextTurn.UpdateZombiesTargets();
             
             if (playerNextTurn.AllHumanDoomed())
             {
@@ -129,7 +126,7 @@ namespace CodeVsZombiesLibrary
             result.ZombieCount = 0;
             foreach(Zombie z in this.Zombies.Values)
             {
-                Position nextZombiePos = z.GetNextPosition();
+                Position nextZombiePos = z.GetNextPosition(this.Ash, this.Humans.Values);
                 result.AddZombieInputs(
                     z.Id, 
                     nextZombiePos.X,
@@ -195,14 +192,6 @@ namespace CodeVsZombiesLibrary
             }
         }
 
-        private void UpdateZombiesTargets()
-        {
-            foreach(Zombie zombie in this.Zombies.Values)
-            {
-                zombie.UpdateTarget(this.Ash, this.Humans.Values);
-            }
-        }
-
         private void UpdateHumansThreats()
         {
             foreach(Human human in this.Humans.Values)
@@ -236,7 +225,7 @@ namespace CodeVsZombiesLibrary
             if (this._nextZombiesBarycentre.Equals(Position.UndefinedPos))
             {
                 this._nextZombiesBarycentre = Position.FindBarycentre(
-                    this.Zombies.Values.Select(z => z.GetNextPosition()));
+                    this.Zombies.Values.Select(z => z.GetNextPosition(this.Ash, this.Humans.Values)));
             }
 
             return this._nextZombiesBarycentre;

@@ -151,9 +151,9 @@ namespace CodeVsZombiesTest
             IEnumerable<Human> humans = inputs.HumansInputs.Select(hi => new Human(hi));
             Hero hero = new Hero(inputs);
 
-            zombie.UpdateTarget(hero, humans);
+            bool result = zombie.GetNextTargetIsHero(hero, humans);
 
-            Assert.IsFalse(zombie.GetNextTargetIsHero(hero, humans));
+            Assert.IsFalse(result);
         }
 
         [TestMethod]
@@ -164,9 +164,9 @@ namespace CodeVsZombiesTest
             IEnumerable<Human> humans = inputs.HumansInputs.Select(hi => new Human(hi));
             Hero hero = new Hero(zombie.Pos.X, zombie.Pos.Y + 1);
 
-            zombie.UpdateTarget(hero, humans);
+            bool result = zombie.GetNextTargetIsHero(hero, humans);
 
-            Assert.IsTrue(zombie.GetNextTargetIsHero(hero, humans));
+            Assert.IsTrue(result);
         }
 
         [TestMethod]
@@ -179,10 +179,10 @@ namespace CodeVsZombiesTest
             Zombie zombie = new Zombie(0, 2000, 2000, 5000, 5000);
             Position expected = new Position(5000, 5000);
 
-            zombie.UpdateTarget(hero, humans);
-            Position res = zombie.GetNextPosition();
+            Position res = zombie.GetNextPosition(hero, humans);
 
             Assert.AreEqual(expected.X, res.X);
+            Assert.AreEqual(expected.Y, res.Y);
         }
 
         [TestMethod]
@@ -195,10 +195,10 @@ namespace CodeVsZombiesTest
             Zombie zombie = new Zombie(0, 2000, 2000);
             Position expected = new Position(2282, 2282);
 
-            zombie.UpdateTarget(hero, humans);
-            Position res = zombie.GetNextPosition();
+            Position res = zombie.GetNextPosition(hero, humans);
 
             Assert.AreEqual(expected.X, res.X);
+            Assert.AreEqual(expected.Y, res.Y);
         }
 
         [TestMethod]
@@ -211,10 +211,10 @@ namespace CodeVsZombiesTest
             Zombie zombie = new Zombie(0, 1000, 1000);
             Position expected = new Position(717, 717);
 
-            zombie.UpdateTarget(hero, humans);
-            Position res = zombie.GetNextPosition();
+            Position res = zombie.GetNextPosition(hero, humans);
 
             Assert.AreEqual(expected.X, res.X);
+            Assert.AreEqual(expected.Y, res.Y);
         }
     }
 }
