@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace CodeVsZombiesLibrary
 {
     public class Human : Character
