@@ -61,6 +61,116 @@ namespace CodeVsZombiesTest
         }
 
         [TestMethod]
+        public void IsHumanDoomed_OneDoomedOneNot_FirstDoomedSecondNot()
+        {
+            Inputs inputs = new Inputs(
+                5000,
+                0,
+                new List<HumanInputs>(2){
+                    new HumanInputs(0, 1500, 0), // 2 turns to be in hero range
+                    new HumanInputs(1, 7500, 0), // 1 turn to be in hero range
+                },
+                new List<ZombieInputs>(2){
+                    new ZombieInputs(0, 1100, 0, 1500, 0), // one turn from human 0
+                    new ZombieInputs(1, 7900, 0, 7500, 0), // one turn from human 1                
+                }
+            );
+            Player p = new Player(inputs);
+
+            bool result1 = p.IsHumanDoomed(0);
+            bool result2 = p.IsHumanDoomed(1);
+
+            Assert.IsTrue(result1);
+            Assert.IsFalse(result2);
+        }
+
+        [TestMethod]
+        public void IsHumanDoomed_UpdatedPositions_BothHumansDoomed()
+        {
+            // init first turn
+            Inputs inputs = new Inputs(
+                5000,
+                0,
+                new List<HumanInputs>(2){
+                    new HumanInputs(0, 0, 0), // 3 turns to be in hero range
+                    new HumanInputs(1, 9000, 0), // 2 turns to be in hero range
+                },
+                new List<ZombieInputs>(2){
+                    new ZombieInputs(0, 800, 0, 400, 0), // 2 turns from human 0
+                    new ZombieInputs(1, 9800, 0, 9400, 0), // 2 turns from human 1                
+                }
+            );
+            Player p = new Player(inputs);
+
+            // check that result before update is good
+            Assert.IsTrue(p.IsHumanDoomed(0));
+            Assert.IsFalse(p.IsHumanDoomed(1));
+
+            // update positions for new turn, hero did not move so both humans are now doomed
+            inputs.ZombieInputs.Clear();
+            inputs.AddZombieInputs(0, 400, 0, 0, 0);
+            inputs.AddZombieInputs(1, 9400, 0, 9000, 0);
+
+            // compute IsDoomed for both humans
+            bool result1 = p.IsHumanDoomed(0);
+            bool result2 = p.IsHumanDoomed(1);
+
+            // check result
+            Assert.IsTrue(result1);
+            Assert.IsFalse(result2);
+        }
+
+
+        [TestMethod]
+        public void IsHumanDoomed_TwoZombiesOnSameHuman_Doomed()
+        {
+            Inputs inputs = new Inputs(
+                4000,
+                0,
+                new List<HumanInputs>(){
+                    new HumanInputs(0, 0, 0), // 2 turns to get under hero protection
+                },
+                new List<ZombieInputs>(){
+                    new ZombieInputs(0, 800, 0, 400, 0), // 2 turns from human 0
+                    new ZombieInputs(1, 400, 0, 0, 0), // 1 turns from human 0                
+                }
+            );
+            Player p = new Player(inputs);
+
+            bool result = p.IsHumanDoomed(0);
+
+            Assert.IsTrue(result);
+        }
+
+        [TestMethod]
+        public void IsHumanDoomed_ZombieTargetIsHero_NotDoomed()
+        {
+            Human human = new Human(0, 0, 0);
+            IEnumerable<Human> humans = new List<Human>(1)
+            {
+                human,
+            };
+            Zombie zombie1 = new Zombie(0, 5400, 0, 5000, 0);
+            Hero hero = new Hero(5000, 0);
+
+            Inputs inputs = new Inputs(
+                5000,
+                0,
+                new List<HumanInputs>(){
+                    new HumanInputs(0, 0, 0),
+                },
+                new List<ZombieInputs>(){
+                    new ZombieInputs(0, 5400, 0, 5000, 0),
+                }
+            );
+            Player p = new Player(inputs);
+
+            bool result = p.IsHumanDoomed(0);
+
+            Assert.IsFalse(result);
+        }
+
+        [TestMethod]
         public void AllHumanDoomed_AllHumanDoomed_True()
         {
             Inputs inputs = new Inputs(

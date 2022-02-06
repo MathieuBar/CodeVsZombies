@@ -13,6 +13,8 @@ namespace CodeVsZombiesLibrary
         private Dictionary<int, Zombie> Zombies { get; set; }
         
         private Position _nextZombiesBarycentre;
+        private ISet<int> _humansDoomed;
+        private bool _humansDoomedIsSet;
 
         public Player(Inputs startInputs)
         {
@@ -36,7 +38,7 @@ namespace CodeVsZombiesLibrary
             }
 
             this._nextZombiesBarycentre = Position.UndefinedPos;
-            this.UpdateHumansThreats();
+            this._humansDoomed = new HashSet<int>(startInputs.HumanCount);
         }
 
         public void UpdateFromNewInputs(Inputs newTurnInputs)
@@ -54,7 +56,8 @@ namespace CodeVsZombiesLibrary
             }
 
             this._nextZombiesBarycentre = Position.UndefinedPos;
-            this.UpdateHumansThreats();
+            this._humansDoomed.Clear();
+            this._humansDoomedIsSet = false;
         }
 
         /// Convert current Player to Inputs (mainly for unit tests purposes)
@@ -72,16 +75,17 @@ namespace CodeVsZombiesLibrary
 
         public bool IsHumanDoomed(int humanId)
         {
-            if (!this.Humans.ContainsKey(humanId))
+            if (!this._humansDoomedIsSet)
             {
-                throw new ArgumentOutOfRangeException(nameof(humanId), $"No human with id {humanId} in humans alive.");
+                this.SetHumansDoomed();
             }
-            return this.Humans[humanId].Doomed;
+
+            return this._humansDoomed.Contains(humanId);
         }
 
         public bool AllHumanDoomed()
         {
-            return this.Humans.All(h => h.Value.Doomed);
+            return this.Humans.Keys.All(humanId => this.IsHumanDoomed(humanId));
         }
 
         public Position GetNextHeroTarget()
@@ -92,9 +96,10 @@ namespace CodeVsZombiesLibrary
             
             if (playerNextTurn.AllHumanDoomed())
             {
-                Human humanToProtect = this.Humans.Values.FirstOrDefault(
-                    h => !h.Doomed && h.ThreateningZombiesCount > 0
-                );
+                Human humanToProtect = this.Humans.Values
+                    .Where(h => !this.IsHumanDoomed(h.Id))
+                    .OrderBy(h => this.Ash.GetTurnsToGetInRangeToHuman(h))
+                    .FirstOrDefault();
                 if (humanToProtect != null)
                 {
                     return humanToProtect.Pos;
@@ -110,9 +115,8 @@ namespace CodeVsZombiesLibrary
         /// <remarks>
         /// Lazy getter. 
         /// !!! 
-        /// Private field <cref name="_zombiesBarycentre"/> must be set to 
-        /// <cref name="Position.UndefinedPos"/> at each change in zombies
-        /// number or positions
+        /// Private field _nextZombiesBarycentre must be set to 
+        /// Position.UndefinedPos at each new turn
         /// !!!
         /// </remarks>
         /// <returns>the barycentre of next positions of zombies</returns>
@@ -126,7 +130,7 @@ namespace CodeVsZombiesLibrary
 
             return this._nextZombiesBarycentre;
         }
-        
+
         private Inputs SimulateNextMove(Position target)
         {
             // inputs from present states
@@ -204,19 +208,24 @@ namespace CodeVsZombiesLibrary
             }
         }
 
-        private void UpdateHumansThreats()
+        private void SetHumansDoomed()
         {
-            foreach(Human human in this.Humans.Values)
+            this._humansDoomed.Clear();
+
+            foreach(Zombie zombie in this.Zombies.Values
+                .Where(z => !z.GetNextTargetIsHero(this.Ash, this.Humans.Values)))
             {
-                human.ClearThreateningZombies();
+                Human targetedHuman = zombie.GetNearestHuman(this.Humans.Values);
+                int turnsToReachTarget = zombie.GetTurnsToNearestHuman(this.Humans.Values);
+                int turnsToBeCoveredByHero = this.Ash.GetTurnsToGetInRangeToHuman(targetedHuman);
+
+                if (turnsToReachTarget < turnsToBeCoveredByHero)
+                {
+                    this._humansDoomed.Add(targetedHuman.Id);
+                }
             }
 
-            foreach(Zombie zombie in this.Zombies.Values.Where(z => z.GetNearestHuman(this.Humans.Values) != null))
-            {
-                Human human = zombie.GetNearestHuman(this.Humans.Values);
-                int turnsToBeCoveredByHero = this.Ash.GetTurnsToGetInRangeToHuman(human);
-                human.AddThreateningZombie(zombie, this.Ash, this.Humans.Values);
-            }
+            this._humansDoomedIsSet = true;
         }
     }
 }
