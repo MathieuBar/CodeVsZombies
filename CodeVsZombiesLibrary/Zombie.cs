@@ -17,7 +17,7 @@ namespace CodeVsZombiesLibrary
         private Position _computedNextPosition;
 
 
-        public Zombie(int id, int xPos, int yPos, int nextXPos, int nextYPos, Player owner = null): 
+        public Zombie(int id, int xPos, int yPos, int nextXPos, int nextYPos, Game owner = null): 
             base(id, xPos, yPos, owner)
         {
             this.Speed = Zombie._zombieSpeed;
@@ -25,13 +25,13 @@ namespace CodeVsZombiesLibrary
             this._givenNextPosition = new Position(nextXPos, nextYPos);
         }
 
-        public Zombie(int id, int xPos, int yPos, Player owner = null): this(
+        public Zombie(int id, int xPos, int yPos, Game owner = null): this(
             id, xPos, yPos, Position.UndefinedPos.X, Position.UndefinedPos.Y, owner)
         {
             // nothing to add
         }
 
-        public Zombie(ZombieInputs zi, Player owner = null): 
+        public Zombie(ZombieInputs zi, Game owner = null): 
             this(zi.Id, zi.X, zi.Y, zi.XNext, zi.YNext, owner)
         {
             // nothing to add

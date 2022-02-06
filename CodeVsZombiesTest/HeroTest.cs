@@ -245,8 +245,8 @@ namespace CodeVsZombiesTest
         public void GetTurnsToGetInRangeToHuman_NewTurn_DistanceInTurnsUpdated()
         {
             Inputs inputs = InputsGenerator.GenerateInputs(CodingGameTestCase.Simple);
-            Player p = new Player(inputs);
-            Hero hero = new Hero(0, 0, p); // hero receive events from p, even if it is not really owned by p
+            Game g = new Game(inputs);
+            Hero hero = new Hero(0, 0, g); // hero receive events from p, even if it is not really owned by p
             Human human = new Human(0, 3000, 0, null);
 
             // check that init is well done
@@ -254,7 +254,7 @@ namespace CodeVsZombiesTest
             Assert.AreEqual(1, turnsToHumanAtFirst);
 
             // send NewTurnStarted event, which is expected to reset distances to humans
-            p.UpdateFromNewInputs(inputs); 
+            g.UpdateFromNewInputs(inputs); 
 
             // GetTurnsToGetInRangeToHuman should return up to date value
             hero.UpdatePosition(1000, 0);

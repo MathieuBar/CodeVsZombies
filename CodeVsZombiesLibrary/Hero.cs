@@ -11,20 +11,20 @@ namespace CodeVsZombiesLibrary
 
         private Dictionary<int, int> _turnsToGetInRangeToHuman;
 
-        public Hero(int id, int xPos, int yPos, Player owner = null): 
+        public Hero(int id, int xPos, int yPos, Game owner = null): 
             base(id, xPos, yPos, owner)
         {
             this.Speed = Hero._heroSpeed;
             this._turnsToGetInRangeToHuman = new Dictionary<int, int>();
         }
 
-        public Hero(int xPos, int yPos, Player owner = null): 
+        public Hero(int xPos, int yPos, Game owner = null): 
             this(DefaultHeroId, xPos, yPos, owner)
         {
             // nothing to add
         }
 
-        public Hero(Inputs inputs, Player owner = null): this(inputs.X, inputs.Y, owner)
+        public Hero(Inputs inputs, Game owner = null): this(inputs.X, inputs.Y, owner)
         {
             // nothing to add
         }
