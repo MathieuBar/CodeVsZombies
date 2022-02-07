@@ -27,13 +27,13 @@ namespace CodeVsZombiesLibrary
             this.Humans = new Dictionary<int, Human>(startInputs.HumanCount);
             foreach (HumanInputs hi in startInputs.HumansInputs)
             {
-                this.AddHuman(hi);
+                this.Humans.Add(hi.Id, new Human(hi, this));
             }
 
             this.Zombies = new Dictionary<int, Zombie>(startInputs.ZombieCount);
             foreach (ZombieInputs zi in startInputs.ZombieInputs)
             {
-                this.AddZombie(zi);
+                this.Zombies.Add(zi.Id, new Zombie(zi, this));
             }
         }
 
@@ -41,7 +41,7 @@ namespace CodeVsZombiesLibrary
         {
             this.StateChanged?.Invoke(this, EventArgs.Empty);
 
-            this.UpdateAshPos(newTurnInputs.X, newTurnInputs.Y);
+            this.Ash.UpdatePosition(newTurnInputs.X, newTurnInputs.Y);
 
             this.UpdateDeadHumans(newTurnInputs.HumanCount, newTurnInputs.HumansInputs);
 
@@ -91,21 +91,6 @@ namespace CodeVsZombiesLibrary
             );
 
             return result;
-        }
-
-        private void AddHuman(HumanInputs hi)
-        {
-            this.Humans.Add(hi.Id, new Human(hi, this));
-        }
-
-        private void AddZombie(ZombieInputs zi)
-        {
-            this.Zombies.Add(zi.Id, new Zombie(zi, this));
-        }
-
-        private void UpdateAshPos(int x, int y)
-        {
-            this.Ash.UpdatePosition(x, y);
         }
 
         private void UpdateDeadHumans(int newHumanCount, IList<HumanInputs> humansInputs)
