@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 
 namespace CodeVsZombiesLibrary
@@ -56,7 +57,8 @@ namespace CodeVsZombiesLibrary
         /// Update this game by simulating next turn with given next hero target
         /// </summary>
         /// <param name="nextHeroTarget">next hero target</param>
-        public void UpdateByNewTurnSimulation(Position nextHeroTarget)
+        /// <return>Game end : true if all humans are dead or all zombies are dead after this turn</return>
+        public bool UpdateByNewTurnSimulation(Position nextHeroTarget)
         {
             // update zombies positions (independant from next hero target)
             foreach(Zombie z in this.Zombies.Values)
@@ -70,14 +72,25 @@ namespace CodeVsZombiesLibrary
             // send state changed event
             this.StateChanged?.Invoke(this, EventArgs.Empty);
 
-            // kill zombies
-            int turnScore = this.HeroKillZombies();
+            // kill zombies, update score and check if all zombies are dead
+            this.Score += this.HeroKillZombies();
+            if (this.Zombies.Count == 0)
+            {
+                return true;
+            }
 
-            // update score
-            this.Score += turnScore;
+            // kill humans and check if all humans are dead
+            this.ZombiesKillHumans();
+            if (this.Humans.Count == 0)
+            {
+                this.Score = 0;
+                return true;
+            }
 
             // send state changed event
             this.StateChanged?.Invoke(this, EventArgs.Empty);
+
+            return false;
         }
 
         /// Convert current Game to Inputs (mainly for unit tests purposes)
@@ -92,6 +105,8 @@ namespace CodeVsZombiesLibrary
 
             return result;
         }
+
+        public int[] GetHumansAliveIds() => this.Humans.Keys.ToArray();
 
         private void UpdateDeadHumans(int newHumanCount, IList<HumanInputs> humansInputs)
         {
@@ -148,6 +163,23 @@ namespace CodeVsZombiesLibrary
             }
 
             return score;
+        }
+
+        /// <summary>
+        /// Zombies at a human pos kill this human
+        /// </summary>
+        private void ZombiesKillHumans()
+        {
+            foreach(Zombie z in this.Zombies.Values)
+            {
+                foreach(int humanId in this.Humans.Keys)
+                {
+                    if (z.Pos.Equals(this.Humans[humanId].Pos))
+                    {
+                        this.Humans.Remove(humanId);
+                    }
+                }
+            }
         }
     }
 }

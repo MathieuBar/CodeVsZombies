@@ -67,7 +67,7 @@ namespace CodeVsZombiesTest
                     // 3 humans alive => 3^2 * 10 = 90 base score for each zombie killed
                     new HumanInputs(0, 10000, 10000),
                     new HumanInputs(1, 9000, 10000),
-                    new HumanInputs(2, 1000, 9000),
+                    new HumanInputs(2, 10000, 9000),
                 },
                 new List<ZombieInputs>(){
                     // first zombie goes toward human and is killed at second turn 
@@ -85,11 +85,79 @@ namespace CodeVsZombiesTest
             Position heroTargetPos = new Position(0, 0); // hero won't move : zombies will come to it
 
             g.UpdateByNewTurnSimulation(heroTargetPos);
-            
             Assert.AreEqual(270, g.Score);
 
             g.UpdateByNewTurnSimulation(heroTargetPos);
             Assert.AreEqual(1710, g.Score);
         }
-    }
+
+        [TestMethod]
+        public void UpdateByNewTurnSimulation_HumanKilled_ReturnFalseAndGoodHumansAlive()
+        {
+            Inputs inputs = new Inputs(
+                9000, 9000,
+                new List<HumanInputs>(){
+                    new HumanInputs(0, 10000, 9000),
+                    new HumanInputs(1, 0, 0),
+                    new HumanInputs(2, 9000, 10000),
+                },
+                new List<ZombieInputs>(){
+                    new ZombieInputs(0, 0, 400, 0, 0),
+                }
+            );
+            Game g = new Game(inputs);
+            Position heroTargetPos = new Position(9000, 9000); // hero won't move
+            int[] expectedHumansAliveIds = { 0, 2 };
+
+            bool gameEnd = g.UpdateByNewTurnSimulation(heroTargetPos);
+            int[] humansAliveIds = g.GetHumansAliveIds();
+
+            Assert.IsFalse(gameEnd);
+            CollectionAssert.AreEquivalent(expectedHumansAliveIds, humansAliveIds);
+        }
+
+        [TestMethod]
+        public void UpdateByNewTurnSimulation_AllZombiesKilled_ReturnTrue()
+        {
+            Inputs inputs = new Inputs(
+                0, 0,
+                new List<HumanInputs>(){new HumanInputs(0, 0, 0)},
+                new List<ZombieInputs>(){new ZombieInputs(0, 2400, 0, 2000, 0)}
+            );
+            Game g = new Game(inputs);
+            Position heroTargetPos = new Position(0, 0); // hero won't move
+            int expectedScore = 30;
+
+            bool result = g.UpdateByNewTurnSimulation(heroTargetPos);
+
+            Assert.IsTrue(result);
+            Assert.AreEqual(expectedScore, g.Score);
+        }
+
+
+        [TestMethod]
+        public void UpdateByNewTurnSimulation_AllHumanKilled_ReturnTrueScore0()
+        {
+            Inputs inputs = new Inputs(
+                0, 0,
+                new List<HumanInputs>(){new HumanInputs(
+                    0, 5000, 0),
+                },
+                new List<ZombieInputs>(){
+                    new ZombieInputs(0, 5800, 0, 5400, 0), // this zombie will kill the human after 2nd turn
+                    new ZombieInputs(1, 1000, 0, 600, 0), // this zombie will be killed after 1st turn
+                }
+            );
+            Game g = new Game(inputs);
+            Position heroTargetPos = new Position(0, 0); // hero won't move
+
+            bool result = g.UpdateByNewTurnSimulation(heroTargetPos);
+            Assert.IsFalse(result);
+            Assert.AreEqual(30, g.Score);
+
+            result = g.UpdateByNewTurnSimulation(heroTargetPos);
+            Assert.IsTrue(result);
+            Assert.AreEqual(0, g.Score);
+        }
+     }
 }
