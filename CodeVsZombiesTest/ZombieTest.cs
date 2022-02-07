@@ -61,6 +61,51 @@ namespace CodeVsZombiesTest
             _ => throw new ArgumentOutOfRangeException(nameof(unitTestCase), $"Not expected unit test name value: {unitTestCase}"),
         };
 
+        [TestMethod]
+        public void UpdateByNewTurnSimulation_TowardsHuman_GoodPosAndNextPos()
+        {
+            GameEventSender ges = new GameEventSender();
+            Hero hero = new Hero(0, 0);
+            IEnumerable<Human> humans = new List<Human>{
+                new Human(0, 3000, 3000),
+            };
+            Zombie zombie = new Zombie(0, 2000, 2000, ges);
+            Position posExpected = new Position(2282, 2282);
+            Position nextPosExpected = new Position(2564, 2564);
+
+            zombie.UpdateByNewTurnSimulation(hero, humans);
+            ges.SendStateChangedEvent();
+            Position resPos = zombie.Pos;
+            Position resNextPos = zombie.GetNextPosition(hero, humans);
+
+            Assert.AreEqual(posExpected.X, resPos.X);
+            Assert.AreEqual(posExpected.Y, resPos.Y);
+            Assert.AreEqual(nextPosExpected.X, resNextPos.X);
+            Assert.AreEqual(nextPosExpected.Y, resNextPos.Y);
+        }
+
+        [TestMethod]
+        public void UpdateByNewTurnSimulation_NoGivenNextPosAndTowardsHero_GoodComputedNextPos()
+        {
+            GameEventSender ges = new GameEventSender();
+            Hero hero = new Hero(0, 0);
+            IEnumerable<Human> humans = new List<Human>{
+                new Human(0, 3000, 3000),
+            };
+            Zombie zombie = new Zombie(0, 1000, 1000, ges);
+            Position posExpected = new Position(717, 717);
+            Position nextPosExpected = new Position(434, 434);
+
+            zombie.UpdateByNewTurnSimulation(hero, humans);
+            ges.SendStateChangedEvent();
+            Position resPos = zombie.Pos;
+            Position resNextPos = zombie.GetNextPosition(hero, humans);
+
+            Assert.AreEqual(posExpected.X, resPos.X);
+            Assert.AreEqual(posExpected.Y, resPos.Y);
+            Assert.AreEqual(nextPosExpected.X, resNextPos.X);
+            Assert.AreEqual(nextPosExpected.Y, resNextPos.Y);
+        }
 
         [TestMethod]
         public void GetNearestHuman_OneHuman_GoodTarget()

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using CodeVsZombiesLibrary;
+using Microsoft.VisualStudio.TestPlatform.Utilities;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CodeVsZombiesTest
@@ -244,8 +245,7 @@ namespace CodeVsZombiesTest
         [TestMethod]
         public void GetTurnsToGetInRangeToHuman_NewTurn_DistanceInTurnsUpdated()
         {
-            Inputs inputs = InputsGenerator.GenerateInputs(CodingGameTestCase.Simple);
-            Game g = new Game(inputs);
+            GameEventSender g = new GameEventSender();
             Hero hero = new Hero(0, 0, g); // hero receive events from p, even if it is not really owned by p
             Human human = new Human(0, 3000, 0, null);
 
@@ -254,7 +254,7 @@ namespace CodeVsZombiesTest
             Assert.AreEqual(1, turnsToHumanAtFirst);
 
             // send NewTurnStarted event, which is expected to reset distances to humans
-            g.UpdateFromNewInputs(inputs); 
+            g.SendStateChangedEvent();
 
             // GetTurnsToGetInRangeToHuman should return up to date value
             hero.UpdatePosition(1000, 0);

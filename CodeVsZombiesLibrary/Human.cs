@@ -1,13 +1,13 @@
 namespace CodeVsZombiesLibrary
 {
     public class Human : Character
-    {   public Human(int id, int xPos, int yPos, Game owner = null):
+    {   public Human(int id, int xPos, int yPos, IStateChangedEventSender owner = null):
             base(id, xPos, yPos, owner)
         {
             this.Speed = 0;
         }
 
-        public Human(HumanInputs hi, Game owner = null): this(hi.Id, hi.X, hi.Y, owner)
+        public Human(HumanInputs hi, IStateChangedEventSender owner = null): this(hi.Id, hi.X, hi.Y, owner)
         {
             // nothing to add
         }

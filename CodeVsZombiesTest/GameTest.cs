@@ -36,7 +36,7 @@ namespace CodeVsZombiesTest
             bool eventReceived = false;
             EventHandler onNewTurnStarted = (sender, eventArgs) =>
                 eventReceived = true;
-            g.NewTurnStarted += onNewTurnStarted;
+            g.StateChanged += onNewTurnStarted;
 
             g.InitFromInputs(inputs);
 
@@ -51,11 +51,45 @@ namespace CodeVsZombiesTest
             bool eventReceived = false;
             EventHandler onNewTurnStarted = (sender, eventArgs) =>
                 eventReceived = true;
-            g.NewTurnStarted += onNewTurnStarted;
+            g.StateChanged += onNewTurnStarted;
 
             g.UpdateFromNewInputs(inputs);
 
             Assert.IsTrue(eventReceived);
+        }
+
+        [TestMethod]
+        public void UpdateByNewTurnSimulation_ManyZombiesKilled_GoodScore()
+        {
+            Inputs inputs = new Inputs(
+                0, 0,
+                new List<HumanInputs>(){
+                    // 3 humans alive => 3^2 * 10 = 90 base score for each zombie killed
+                    new HumanInputs(0, 10000, 10000),
+                    new HumanInputs(1, 9000, 10000),
+                    new HumanInputs(2, 1000, 9000),
+                },
+                new List<ZombieInputs>(){
+                    // first zombie goes toward human and is killed at second turn 
+                    // => 90*3 = 270 points
+                    new ZombieInputs(0, 0, 2400, 0, 2000),
+                    // three following zombies go toward human and will all be killed at third turn
+                    // => 90*3 + 90*5 + 90*8 = 1440 points added to the 270 points of the previous kill
+                    // => 1710 total score
+                    new ZombieInputs(1, 0, 2800, 0, 2400),
+                    new ZombieInputs(2, 0, 2800, 0, 2400),
+                    new ZombieInputs(3, 0, 2800, 0, 2400),
+                }
+            );
+            Game g = new Game(inputs);
+            Position heroTargetPos = new Position(0, 0); // hero won't move : zombies will come to it
+
+            g.UpdateByNewTurnSimulation(heroTargetPos);
+            
+            Assert.AreEqual(270, g.Score);
+
+            g.UpdateByNewTurnSimulation(heroTargetPos);
+            Assert.AreEqual(1710, g.Score);
         }
     }
 }

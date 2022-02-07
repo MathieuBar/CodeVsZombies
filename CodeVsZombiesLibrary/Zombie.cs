@@ -17,7 +17,7 @@ namespace CodeVsZombiesLibrary
         private Position _computedNextPosition;
 
 
-        public Zombie(int id, int xPos, int yPos, int nextXPos, int nextYPos, Game owner = null): 
+        public Zombie(int id, int xPos, int yPos, int nextXPos, int nextYPos, IStateChangedEventSender owner = null): 
             base(id, xPos, yPos, owner)
         {
             this.Speed = Zombie._zombieSpeed;
@@ -25,13 +25,13 @@ namespace CodeVsZombiesLibrary
             this._givenNextPosition = new Position(nextXPos, nextYPos);
         }
 
-        public Zombie(int id, int xPos, int yPos, Game owner = null): this(
+        public Zombie(int id, int xPos, int yPos, IStateChangedEventSender owner = null): this(
             id, xPos, yPos, Position.UndefinedPos.X, Position.UndefinedPos.Y, owner)
         {
             // nothing to add
         }
 
-        public Zombie(ZombieInputs zi, Game owner = null): 
+        public Zombie(ZombieInputs zi, IStateChangedEventSender owner = null): 
             this(zi.Id, zi.X, zi.Y, zi.XNext, zi.YNext, owner)
         {
             // nothing to add
@@ -43,12 +43,27 @@ namespace CodeVsZombiesLibrary
                 this.Id, this.Pos.X, this.Pos.Y, this._givenNextPosition.X, this._givenNextPosition.Y);
         }
 
+        public override void UpdatePosition(Position pos)
+        {
+            base.UpdatePosition(pos);
+            this._givenNextPosition = Position.UndefinedPos;
+        }
 
         public void UpdateFromNewInputs(ZombieInputs newTurnZombieInputs)
         {
             // update positions
-            this.UpdatePosition(newTurnZombieInputs.X, newTurnZombieInputs.Y);
+            base.UpdatePosition(newTurnZombieInputs.X, newTurnZombieInputs.Y);
             this._givenNextPosition = new Position(newTurnZombieInputs.XNext, newTurnZombieInputs.YNext);
+        }
+
+        /// <summary>
+        /// Update this zombie position by simulating next move for a new turn.
+        /// </summary>
+        /// <param name="hero">hero of the game</param>
+        /// <param name="humans">humans of the game</param>
+        public void UpdateByNewTurnSimulation(Hero hero, IEnumerable<Human> humans)
+        {
+            this.UpdatePosition(this.GetNextPosition(hero, humans));
         }
 
         public Human GetNearestHuman(IEnumerable<Human> humans)
@@ -155,8 +170,6 @@ namespace CodeVsZombiesLibrary
         protected override void OnNewTurnStarted(object sender, EventArgs eventArgs)
         {
             this.ClearComputedData();
-            this.UpdatePosition(Position.UndefinedPos);
-            this._givenNextPosition = Position.UndefinedPos;
         }
 
         private void ClearComputedData()

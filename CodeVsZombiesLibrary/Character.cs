@@ -6,9 +6,9 @@ namespace CodeVsZombiesLibrary
         public int Id {get; private set;}
         public Position Pos {get; private set;}
         public int Speed {get; protected set;}
-        protected Game Owner { get; private set; }
+        protected IStateChangedEventSender Owner { get; private set; }
 
-        public Character(int id, int xPos, int yPos, Game owner = null)
+        public Character(int id, int xPos, int yPos, IStateChangedEventSender owner = null)
         {
             this.Id = id;
             this.Pos = new Position(xPos, yPos);
@@ -16,11 +16,11 @@ namespace CodeVsZombiesLibrary
 
             if (owner != null)
             {
-                owner.NewTurnStarted += OnNewTurnStarted;
+                owner.StateChanged += OnNewTurnStarted;
             }
         }
 
-        public void UpdatePosition(Position pos)
+        public virtual void UpdatePosition(Position pos)
         {
             this.Pos = pos;
         }
