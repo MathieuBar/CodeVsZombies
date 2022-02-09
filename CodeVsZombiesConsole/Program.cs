@@ -1,11 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using CodeVsZombiesLibrary;
 
 namespace CodeVsZombiesConsole
 {
     class Program
     {
+        const long maxResponseDelayInMilliSeconds = 100;
+
         static void Main()        
         {
             string[] inputs;
@@ -14,9 +17,12 @@ namespace CodeVsZombiesConsole
             Inputs allInputs = new Inputs();
             bool firstLoop = true;
 
+            Stopwatch stopwatch = new Stopwatch();
+
             // game loop
             while (true)
             {
+                stopwatch.Reset();
                 allInputs.Reset();
 
                 // read Ash position
@@ -66,7 +72,8 @@ namespace CodeVsZombiesConsole
 
 
                 // get hero target choice from player
-                Position target = player.GetNextHeroTarget();
+                int maxDelay = (int)(maxResponseDelayInMilliSeconds - stopwatch.ElapsedMilliseconds - 1);
+                Position target = player.GetNextHeroTarget(maxDelay);
                 Console.WriteLine($"{target.X} {target.Y}"); // Your destination coordinates
 
             }

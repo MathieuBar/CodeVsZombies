@@ -159,5 +159,38 @@ namespace CodeVsZombiesTest
             Assert.IsTrue(result);
             Assert.AreEqual(0, g.Score);
         }
+
+        [TestMethod]
+        public void GetZombieNextPosition_UnknownZombie_UndefinedPos()
+        {
+            Inputs inputs = new Inputs(
+                0, 0,
+                new List<HumanInputs>(){new HumanInputs(0, 0, 0)},
+                new List<ZombieInputs>(){new ZombieInputs(0, 2400, 0, 2000, 0)}
+            );
+            Game g = new Game(inputs);
+
+            Position result = g.GetZombieNextPosition(1);
+
+            Assert.AreEqual(Position.UndefinedPos.X, result.X);
+            Assert.AreEqual(Position.UndefinedPos.Y, result.Y);
+        }
+
+
+        [TestMethod]
+        public void GetZombieNextPosition_KnownZombie_ZombiePos()
+        {
+            Inputs inputs = new Inputs(
+                0, 0,
+                new List<HumanInputs>(){new HumanInputs(0, 0, 1000)},
+                new List<ZombieInputs>(){new ZombieInputs(0, 2400, 1000, 2000, 1000)}
+            );
+            Game g = new Game(inputs);
+
+            Position result = g.GetZombieNextPosition(0);
+
+            Assert.AreEqual(2000, result.X);
+            Assert.AreEqual(1000, result.Y);
+        }
      }
 }

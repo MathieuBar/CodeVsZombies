@@ -18,7 +18,6 @@ namespace CodeVsZombiesLibrary
         public Game(Inputs startInputs)
         {
             this.InitFromInputs(startInputs);
-            this.Score = 0;
         }
 
         public void InitFromInputs(Inputs startInputs)
@@ -36,6 +35,8 @@ namespace CodeVsZombiesLibrary
             {
                 this.Zombies.Add(zi.Id, new Zombie(zi, this));
             }
+
+            this.Score = 0;
         }
 
         public void UpdateFromNewInputs(Inputs newTurnInputs)
@@ -107,6 +108,16 @@ namespace CodeVsZombiesLibrary
         }
 
         public int[] GetHumansAliveIds() => this.Humans.Keys.ToArray();
+
+        public int[] GetZombiesAliveIds() => this.Zombies.Keys.ToArray();
+
+        public Position GetZombieNextPosition(int zombieId)
+        {
+            bool zombieAlive = this.Zombies.TryGetValue(zombieId, out Zombie zombie);
+            return zombieAlive ? zombie.GetNextPosition(this.Ash, this.Humans.Values) : Position.UndefinedPos;
+        }
+
+        public bool IsZombieAlive(int zombieId) => this.Zombies.ContainsKey(zombieId);
 
         private void UpdateDeadHumans(int newHumanCount, IList<HumanInputs> humansInputs)
         {
