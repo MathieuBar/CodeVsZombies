@@ -71,24 +71,25 @@ namespace CodeVsZombiesTest
                 },
                 new List<ZombieInputs>(){
                     // first zombie goes toward human and is killed at second turn 
-                    // => 90*3 = 270 points
+                    // => 90*1 = 90 points
                     new ZombieInputs(0, 0, 2400, 0, 2000),
-                    // three following zombies go toward human and will all be killed at third turn
-                    // => 90*3 + 90*5 + 90*8 = 1440 points added to the 270 points of the previous kill
-                    // => 1710 total score
+                    // 4 following zombies go toward human and will all be killed at third turn
+                    // => 90*1 + 90*2 + 90*3 + 90*5 = 990 points added to the 90 points of the previous kill
+                    // => 1080 total score
                     new ZombieInputs(1, 0, 2800, 0, 2400),
                     new ZombieInputs(2, 0, 2800, 0, 2400),
                     new ZombieInputs(3, 0, 2800, 0, 2400),
+                    new ZombieInputs(4, 0, 2800, 0, 2400),
                 }
             );
             Game g = new Game(inputs);
             Position heroTargetPos = new Position(0, 0); // hero won't move : zombies will come to it
 
             g.UpdateByNewTurnSimulation(heroTargetPos);
-            Assert.AreEqual(270, g.Score);
+            Assert.AreEqual(90, g.Score);
 
             g.UpdateByNewTurnSimulation(heroTargetPos);
-            Assert.AreEqual(1710, g.Score);
+            Assert.AreEqual(1080, g.Score);
         }
 
         [TestMethod]
@@ -126,7 +127,7 @@ namespace CodeVsZombiesTest
             );
             Game g = new Game(inputs);
             Position heroTargetPos = new Position(0, 0); // hero won't move
-            int expectedScore = 30;
+            int expectedScore = 10;
 
             bool result = g.UpdateByNewTurnSimulation(heroTargetPos);
 
@@ -153,11 +154,29 @@ namespace CodeVsZombiesTest
 
             bool result = g.UpdateByNewTurnSimulation(heroTargetPos);
             Assert.IsFalse(result);
-            Assert.AreEqual(30, g.Score);
+            Assert.AreEqual(10, g.Score);
 
             result = g.UpdateByNewTurnSimulation(heroTargetPos);
             Assert.IsTrue(result);
             Assert.AreEqual(0, g.Score);
+        }
+
+        [TestMethod]
+        public void UpdateByNewTurnSimulation_TwoZombiesRemix_SameResultsAsCodingGame()
+        {
+            IList<(GameState state, Position target)> realGameHistory = 
+                InputsGenerator.GenerateRealCaseInputHistoryForTwoZombiesRemix();
+            Game g = new Game(realGameHistory[0].state.Inputs);
+            
+            for (int i = 1; i < realGameHistory.Count; i++)
+            {
+                Position targetPos = realGameHistory[i - 1].target;
+                g.UpdateByNewTurnSimulation(targetPos);
+                GameState computedState = g.ToState();
+                GameState expectedState = realGameHistory[i].state;
+
+                Assert.IsTrue(computedState.Equals(expectedState));
+            }
         }
 
         [TestMethod]

@@ -107,6 +107,11 @@ namespace CodeVsZombiesLibrary
             return result;
         }
 
+        public GameState ToState()
+        {
+            return new GameState(this.ToInputs(), this.Score);
+        }
+
         public int[] GetHumansAliveIds() => this.Humans.Keys.ToArray();
 
         public int[] GetZombiesAliveIds() => this.Zombies.Keys.ToArray();
@@ -162,7 +167,7 @@ namespace CodeVsZombiesLibrary
             int score = 0;
 
             int scoreBase = this.Humans.Count * this.Humans.Count * 10;
-            (int fibA, int fibB) = (2, 3);
+            (int fibA, int fibB) = (1, 1);
             foreach(int zombieId in this.Zombies.Keys)
             {
                 if (this.Ash.Pos.DistanceTo(this.Zombies[zombieId].Pos) <= Hero.ShootRange)

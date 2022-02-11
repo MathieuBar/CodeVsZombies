@@ -4,12 +4,15 @@ using System.IO;
 using System.Text;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 /**
  * Save humans, destroy zombies!
  **/
     class Program
     {
+        const long maxResponseDelayInMilliSeconds = 100;
+
         static void Main()        
         {
             string[] inputs;
@@ -18,9 +21,12 @@ using System.Collections.Generic;
             Inputs allInputs = new Inputs();
             bool firstLoop = true;
 
+            Stopwatch stopwatch = new Stopwatch();
+
             // game loop
             while (true)
             {
+                stopwatch.Reset();
                 allInputs.Reset();
 
                 // read Ash position
@@ -70,9 +76,199 @@ using System.Collections.Generic;
 
 
                 // get hero target choice from player
-                Position target = player.GetNextHeroTarget();
+                int maxDelay = (int)(maxResponseDelayInMilliSeconds - stopwatch.ElapsedMilliseconds - 1);
+                Position target = player.GetNextHeroTarget(maxDelay);
                 Console.WriteLine($"{target.X} {target.Y}"); // Your destination coordinates
 
+            }
+        }
+    }
+
+    public class Game: IStateChangedEventSender
+    {
+        public event EventHandler StateChanged;
+
+        public int Score { get; private set; }
+
+        private Hero Ash { get; set; }
+        private Dictionary<int, Human> Humans { get; set; }
+        private Dictionary<int, Zombie> Zombies { get; set; }
+        
+        public Game(Inputs startInputs)
+        {
+            this.InitFromInputs(startInputs);
+        }
+
+        public void InitFromInputs(Inputs startInputs)
+        {
+            this.Ash = new Hero(startInputs, this);
+
+            this.Humans = new Dictionary<int, Human>(startInputs.HumanCount);
+            foreach (HumanInputs hi in startInputs.HumansInputs)
+            {
+                this.Humans.Add(hi.Id, new Human(hi, this));
+            }
+
+            this.Zombies = new Dictionary<int, Zombie>(startInputs.ZombieCount);
+            foreach (ZombieInputs zi in startInputs.ZombieInputs)
+            {
+                this.Zombies.Add(zi.Id, new Zombie(zi, this));
+            }
+
+            this.Score = 0;
+        }
+
+        public void UpdateFromNewInputs(Inputs newTurnInputs)
+        {
+            this.StateChanged?.Invoke(this, EventArgs.Empty);
+
+            this.Ash.UpdatePosition(newTurnInputs.X, newTurnInputs.Y);
+
+            this.UpdateDeadHumans(newTurnInputs.HumanCount, newTurnInputs.HumansInputs);
+
+            this.UpdateDeadZombies(newTurnInputs.ZombieCount, newTurnInputs.ZombieInputs);
+            foreach(ZombieInputs zi in newTurnInputs.ZombieInputs)
+            {
+                this.Zombies[zi.Id].UpdateFromNewInputs(zi);
+            }
+        }
+
+        /// <summary>
+        /// Update this game by simulating next turn with given next hero target
+        /// </summary>
+        /// <param name="nextHeroTarget">next hero target</param>
+        /// <return>Game end : true if all humans are dead or all zombies are dead after this turn</return>
+        public bool UpdateByNewTurnSimulation(Position nextHeroTarget)
+        {
+            // update zombies positions (independant from next hero target)
+            foreach(Zombie z in this.Zombies.Values)
+            {
+                z.UpdateByNewTurnSimulation(this.Ash, this.Humans.Values);
+            }
+
+            // update hero pos in inputs with given target (independant from new zombies positions)
+            this.Ash.UpdatePosition(this.Ash.ComputeNextPos(nextHeroTarget));
+
+            // send state changed event
+            this.StateChanged?.Invoke(this, EventArgs.Empty);
+
+            // kill zombies, update score and check if all zombies are dead
+            this.Score += this.HeroKillZombies();
+            if (this.Zombies.Count == 0)
+            {
+                return true;
+            }
+
+            // kill humans and check if all humans are dead
+            this.ZombiesKillHumans();
+            if (this.Humans.Count == 0)
+            {
+                this.Score = 0;
+                return true;
+            }
+
+            // send state changed event
+            this.StateChanged?.Invoke(this, EventArgs.Empty);
+
+            return false;
+        }
+
+        /// Convert current Game to Inputs (mainly for unit tests purposes)
+        public Inputs ToInputs()
+        {
+            Inputs result = new Inputs(
+                this.Ash.Pos.X,
+                this.Ash.Pos.Y,
+                this.Humans.Values.Select(h => h.ToHumanInputs()).ToList(),
+                this.Zombies.Values.Select(z => z.ToZombieInputs()).ToList()
+            );
+
+            return result;
+        }
+
+        public int[] GetHumansAliveIds() => this.Humans.Keys.ToArray();
+
+        public int[] GetZombiesAliveIds() => this.Zombies.Keys.ToArray();
+
+        public Position GetZombieNextPosition(int zombieId)
+        {
+            bool zombieAlive = this.Zombies.TryGetValue(zombieId, out Zombie zombie);
+            return zombieAlive ? zombie.GetNextPosition(this.Ash, this.Humans.Values) : Position.UndefinedPos;
+        }
+
+        public bool IsZombieAlive(int zombieId) => this.Zombies.ContainsKey(zombieId);
+
+        private void UpdateDeadHumans(int newHumanCount, IList<HumanInputs> humansInputs)
+        {
+            if (newHumanCount > this.Humans.Count)
+            {
+                throw new InvalidOperationException("More human alive in input than in internal State.");
+            }
+
+            if (newHumanCount < this.Humans.Count)
+            {
+                IEnumerable<int> deadHumans = this.Humans.Keys.Except(humansInputs.Select(hi => hi.Id));
+                foreach (int id in deadHumans)
+                {
+                    this.Humans.Remove(id);
+                }
+            }
+        }
+
+        private void UpdateDeadZombies(int newZombieCount, IList<ZombieInputs> zombiesInputs)
+        {
+            if (newZombieCount > this.Zombies.Count)
+            {
+                throw new InvalidOperationException("More zombies alive in input than in internal State.");
+            }
+
+            if (newZombieCount < this.Zombies.Count)
+            {
+                IEnumerable<int> deadZombies = this.Zombies.Keys.Except(zombiesInputs.Select(zi => zi.Id));
+                foreach (int id in deadZombies)
+                {
+                    this.Zombies.Remove(id);
+                }
+            }
+        }
+
+        /// <summary>
+        /// All zombies in hero shoot range are destroyed, giving some score
+        /// </summary>
+        /// <returns>the score generated by the kills</returns>
+        private int HeroKillZombies()
+        {
+            int score = 0;
+
+            int scoreBase = this.Humans.Count * this.Humans.Count * 10;
+            (int fibA, int fibB) = (2, 3);
+            foreach(int zombieId in this.Zombies.Keys)
+            {
+                if (this.Ash.Pos.DistanceTo(this.Zombies[zombieId].Pos) <= Hero.ShootRange)
+                {
+                    this.Zombies.Remove(zombieId);
+                    score += scoreBase * fibB;
+                    (fibA, fibB) = (fibB, fibA + fibB);
+                }
+            }
+
+            return score;
+        }
+
+        /// <summary>
+        /// Zombies at a human pos kill this human
+        /// </summary>
+        private void ZombiesKillHumans()
+        {
+            foreach(Zombie z in this.Zombies.Values)
+            {
+                foreach(int humanId in this.Humans.Keys)
+                {
+                    if (z.Pos.Equals(this.Humans[humanId].Pos))
+                    {
+                        this.Humans.Remove(humanId);
+                    }
+                }
             }
         }
     }
@@ -82,9 +278,9 @@ using System.Collections.Generic;
         public int Id {get; private set;}
         public Position Pos {get; private set;}
         public int Speed {get; protected set;}
-        protected Player Owner { get; private set; }
+        protected IStateChangedEventSender Owner { get; private set; }
 
-        public Character(int id, int xPos, int yPos, Player owner = null)
+        public Character(int id, int xPos, int yPos, IStateChangedEventSender owner = null)
         {
             this.Id = id;
             this.Pos = new Position(xPos, yPos);
@@ -92,11 +288,11 @@ using System.Collections.Generic;
 
             if (owner != null)
             {
-                owner.NewTurnStarted += OnNewTurnStarted;
+                owner.StateChanged += OnNewTurnStarted;
             }
         }
 
-        public void UpdatePosition(Position pos)
+        public virtual void UpdatePosition(Position pos)
         {
             this.Pos = pos;
         }
@@ -182,20 +378,20 @@ using System.Collections.Generic;
 
         private Dictionary<int, int> _turnsToGetInRangeToHuman;
 
-        public Hero(int id, int xPos, int yPos, Player owner = null): 
+        public Hero(int id, int xPos, int yPos, IStateChangedEventSender owner = null): 
             base(id, xPos, yPos, owner)
         {
             this.Speed = Hero._heroSpeed;
             this._turnsToGetInRangeToHuman = new Dictionary<int, int>();
         }
 
-        public Hero(int xPos, int yPos, Player owner = null): 
+        public Hero(int xPos, int yPos, IStateChangedEventSender owner = null): 
             this(DefaultHeroId, xPos, yPos, owner)
         {
             // nothing to add
         }
 
-        public Hero(Inputs inputs, Player owner = null): this(inputs.X, inputs.Y, owner)
+        public Hero(Inputs inputs, IStateChangedEventSender owner = null): this(inputs.X, inputs.Y, owner)
         {
             // nothing to add
         }
@@ -219,18 +415,17 @@ using System.Collections.Generic;
         protected override void OnNewTurnStarted(object sender, EventArgs eventArgs)
         {
             this._turnsToGetInRangeToHuman.Clear();
-            this.UpdatePosition(Position.UndefinedPos);
         }
     }
 
     public class Human : Character
-    {   public Human(int id, int xPos, int yPos, Player owner = null):
+    {   public Human(int id, int xPos, int yPos, IStateChangedEventSender owner = null):
             base(id, xPos, yPos, owner)
         {
             this.Speed = 0;
         }
 
-        public Human(HumanInputs hi, Player owner = null): this(hi.Id, hi.X, hi.Y, owner)
+        public Human(HumanInputs hi, IStateChangedEventSender owner = null): this(hi.Id, hi.X, hi.Y, owner)
         {
             // nothing to add
         }
@@ -241,228 +436,118 @@ using System.Collections.Generic;
         }
     }
 
+    public interface IStateChangedEventSender
+    {
+        public event EventHandler StateChanged;
+    }
+
     public class Player
     {
-        public event EventHandler NewTurnStarted;
+        private const int UndefinedZombieTarget = -1;
 
-        private Hero Ash { get; set; }
-        private Dictionary<int, Human> Humans { get; set; }
-        private Dictionary<int, Zombie> Zombies { get; set; }
-        
-        private Position _nextZombiesBarycentre;
-        private ISet<int> _humansDoomed;
-        private bool _humansDoomedIsSet;
+        public int BestSimulScore { get; private set; }
+        public IEnumerable<Position> BestSimulTargetHistory => this._bestSimulTargetHistory.ToArray();
+
+        private Game _curGame;
+        private Inputs _lastInputs;
+        private readonly Random _randomGen = new Random();
+        private int _curZombieTarget = UndefinedZombieTarget;
+        private Queue<Position> _lastSimulTargetHistory = new Queue<Position>(100);
+        private Queue<Position> _bestSimulTargetHistory = new Queue<Position>(100);
+        private Stopwatch _stopwatch = new Stopwatch();
 
         public Player(Inputs startInputs)
         {
-            this.InitFromInputs(startInputs);
-        }
-
-        public void InitFromInputs(Inputs startInputs)
-        {
-            this.Ash = new Hero(startInputs, this);
-
-            this.Humans = new Dictionary<int, Human>(startInputs.HumanCount);
-            foreach (HumanInputs hi in startInputs.HumansInputs)
-            {
-                this.AddHuman(hi);
-            }
-
-            this.Zombies = new Dictionary<int, Zombie>(startInputs.ZombieCount);
-            foreach (ZombieInputs zi in startInputs.ZombieInputs)
-            {
-                this.AddZombie(zi);
-            }
-
-            this._nextZombiesBarycentre = Position.UndefinedPos;
-            this._humansDoomed = new HashSet<int>(startInputs.HumanCount);
+            this._lastInputs = startInputs;
+            this._curGame = new Game(startInputs);
+            this.BestSimulScore = 0;
         }
 
         public void UpdateFromNewInputs(Inputs newTurnInputs)
         {
-            this.NewTurnStarted?.Invoke(this, EventArgs.Empty);
-
-            this.UpdateAshPos(newTurnInputs.X, newTurnInputs.Y);
-
-            this.UpdateDeadHumans(newTurnInputs.HumanCount, newTurnInputs.HumansInputs);
-
-            this.UpdateDeadZombies(newTurnInputs.ZombieCount, newTurnInputs.ZombieInputs);
-            foreach(ZombieInputs zi in newTurnInputs.ZombieInputs)
-            {
-                this.Zombies[zi.Id].UpdateFromNewInputs(zi);
-            }
-
-            this._nextZombiesBarycentre = Position.UndefinedPos;
-            this._humansDoomed.Clear();
-            this._humansDoomedIsSet = false;
-        }
-
-        /// Convert current Player to Inputs (mainly for unit tests purposes)
-        public Inputs ToInputs()
-        {
-            Inputs result = new Inputs(
-                this.Ash.Pos.X,
-                this.Ash.Pos.Y,
-                this.Humans.Values.Select(h => h.ToHumanInputs()).ToList(),
-                this.Zombies.Values.Select(z => z.ToZombieInputs()).ToList()
-            );
-
-            return result;
-        }
-
-        public bool IsHumanDoomed(int humanId)
-        {
-            if (!this._humansDoomedIsSet)
-            {
-                this.SetHumansDoomed();
-            }
-
-            return this._humansDoomed.Contains(humanId);
-        }
-
-        public bool AllHumanDoomed()
-        {
-            return this.Humans.Keys.All(humanId => this.IsHumanDoomed(humanId));
-        }
-
-        public Position GetNextHeroTarget()
-        {
-            Position target = this.GetNextZombiesBarycentre();
-            Inputs nextInputs = this.SimulateNextMove(target);
-            Player playerNextTurn = new Player(nextInputs);
-            
-            if (playerNextTurn.AllHumanDoomed())
-            {
-                Human humanToProtect = this.Humans.Values
-                    .Where(h => !this.IsHumanDoomed(h.Id))
-                    .OrderBy(h => this.Ash.GetTurnsToGetInRangeToHuman(h))
-                    .FirstOrDefault();
-                if (humanToProtect != null)
-                {
-                    return humanToProtect.Pos;
-                }
-            }
-
-            return target;
+            this._lastInputs = newTurnInputs;
+            this._curGame.UpdateFromNewInputs(newTurnInputs);
         }
 
         /// <summary>
-        /// Gets the barycentre of next positions of zombies
+        /// Gets next hero target to be given to coding game program, at each turn
         /// </summary>
-        /// <remarks>
-        /// Lazy getter. 
-        /// !!! 
-        /// Private field _nextZombiesBarycentre must be set to 
-        /// Position.UndefinedPos at each new turn
-        /// !!!
-        /// </remarks>
-        /// <returns>the barycentre of next positions of zombies</returns>
-        public Position GetNextZombiesBarycentre()
+        /// <returns>Next hero target for the "real" game</returns>
+        public Position GetNextHeroTarget(int maxTimeInMilliSeconds)
         {
-            if (this._nextZombiesBarycentre.Equals(Position.UndefinedPos))
+            if (this.BestSimulScore == 0)
             {
-                this._nextZombiesBarycentre = Position.FindBarycentre(
-                    this.Zombies.Values.Select(z => z.GetNextPosition(this.Ash, this.Humans.Values)));
+                this.SimulateManyGamesWithRandomZombieStrat(maxTimeInMilliSeconds);
             }
 
-            return this._nextZombiesBarycentre;
-        }
-
-        private Inputs SimulateNextMove(Position target)
-        {
-            // inputs from present states
-            Inputs result = this.ToInputs();
-
-            // update hero pos in inputs with given target
-            Position nextHeroPos = this.Ash.ComputeNextPos(target);
-            result.X = nextHeroPos.X;
-            result.Y = nextHeroPos.Y;
-
-            // update zombies positions
-            result.ZombieInputs.Clear();
-            result.ZombieCount = 0;
-            foreach(Zombie z in this.Zombies.Values)
+            if (this._bestSimulTargetHistory.Count > 0)
             {
-                Position nextZombiePos = z.GetNextPosition(this.Ash, this.Humans.Values);
-                result.AddZombieInputs(
-                    z.Id, 
-                    nextZombiePos.X,
-                    nextZombiePos.Y,
-                    Position.UndefinedPos.X,
-                    Position.UndefinedPos.Y
-                    );
+                return this._bestSimulTargetHistory.Dequeue();
             }
 
-            return result;
-        }
-
-        private void AddHuman(HumanInputs hi)
-        {
-            this.Humans.Add(hi.Id, new Human(hi, this));
-        }
-
-        private void AddZombie(ZombieInputs zi)
-        {
-            this.Zombies.Add(zi.Id, new Zombie(zi, this));
-        }
-
-        private void UpdateAshPos(int x, int y)
-        {
-            this.Ash.UpdatePosition(x, y);
-        }
-
-        private void UpdateDeadHumans(int newHumanCount, IList<HumanInputs> humansInputs)
-        {
-            if (newHumanCount > this.Humans.Count)
+            if (this._lastSimulTargetHistory.Count > 0)
             {
-                throw new InvalidOperationException("More human alive in input than in internal State.");
+                return this._lastSimulTargetHistory.Dequeue();
             }
 
-            if (newHumanCount < this.Humans.Count)
+            return new Position(0, 0);
+        }
+
+        public int SimulateManyGamesWithRandomZombieStrat(int maxTimeInMilliSeconds)
+        {
+            const int marginInMilliSeconds = 5;
+            int numberOfGameSimulated = 0;
+
+            this._stopwatch.Reset();
+            this._stopwatch.Start();
+
+            this._lastSimulTargetHistory.Clear();
+
+            while (this._stopwatch.ElapsedMilliseconds < maxTimeInMilliSeconds - marginInMilliSeconds)
             {
-                IEnumerable<int> deadHumans = this.Humans.Keys.Except(humansInputs.Select(hi => hi.Id));
-                foreach (int id in deadHumans)
+                Position targetPos = this.ComputeNextHeroTargetRandomZombieStrat();
+                this._lastSimulTargetHistory.Enqueue(targetPos);
+                bool endGame = this._curGame.UpdateByNewTurnSimulation(targetPos);
+
+                if (endGame)
                 {
-                    this.Humans.Remove(id);
-                }
-            }
-        }
+                    if (this._curGame.Score > this.BestSimulScore)
+                    {
+                        this.BestSimulScore = this._curGame.Score;
+                        (this._bestSimulTargetHistory, this._lastSimulTargetHistory) = (this._lastSimulTargetHistory, this._bestSimulTargetHistory);
+                        this._lastSimulTargetHistory.Clear();
+                    }
 
-        private void UpdateDeadZombies(int newZombieCount, IList<ZombieInputs> zombiesInputs)
-        {
-            if (newZombieCount > this.Zombies.Count)
-            {
-                throw new InvalidOperationException("More zombies alive in input than in internal State.");
-            }
-
-            if (newZombieCount < this.Zombies.Count)
-            {
-                IEnumerable<int> deadZombies = this.Zombies.Keys.Except(zombiesInputs.Select(zi => zi.Id));
-                foreach (int id in deadZombies)
-                {
-                    this.Zombies.Remove(id);
-                }
-            }
-        }
-
-        private void SetHumansDoomed()
-        {
-            this._humansDoomed.Clear();
-
-            foreach(Zombie zombie in this.Zombies.Values
-                .Where(z => !z.GetNextTargetIsHero(this.Ash, this.Humans.Values)))
-            {
-                Human targetedHuman = zombie.GetNearestHuman(this.Humans.Values);
-                int turnsToReachTarget = zombie.GetTurnsToNearestHuman(this.Humans.Values);
-                int turnsToBeCoveredByHero = this.Ash.GetTurnsToGetInRangeToHuman(targetedHuman);
-
-                if (turnsToReachTarget < turnsToBeCoveredByHero)
-                {
-                    this._humansDoomed.Add(targetedHuman.Id);
+                    this._curGame.InitFromInputs(this._lastInputs);
+                    numberOfGameSimulated += 1;
                 }
             }
 
-            this._humansDoomedIsSet = true;
+            return numberOfGameSimulated;
+        }
+
+        /// <summary>
+        /// Return a target for the hero, by selecting a random zombie still in 
+        /// game, heading toward its next pos while he is not dead, and then 
+        /// chosing another random zombie.
+        /// </summary>
+        /// <returns>The suggested target pos for hero for next turn</returns>
+        private Position ComputeNextHeroTargetRandomZombieStrat()
+        {
+            if (this._curZombieTarget == Player.UndefinedZombieTarget 
+                || !this._curGame.IsZombieAlive(this._curZombieTarget))
+            {
+                this._curZombieTarget = this.SelectRandomZombieAsTarget();
+            }
+
+            return this._curGame.GetZombieNextPosition(this._curZombieTarget);
+        }
+
+        private int SelectRandomZombieAsTarget()
+        {
+            int[] zombiesId = this._curGame.GetZombiesAliveIds();
+            int rndIdx = _randomGen.Next(zombiesId.Length);
+            return zombiesId[rndIdx];
         }
     }
 
@@ -479,7 +564,7 @@ using System.Collections.Generic;
         private Position _computedNextPosition;
 
 
-        public Zombie(int id, int xPos, int yPos, int nextXPos, int nextYPos, Player owner = null): 
+        public Zombie(int id, int xPos, int yPos, int nextXPos, int nextYPos, IStateChangedEventSender owner = null): 
             base(id, xPos, yPos, owner)
         {
             this.Speed = Zombie._zombieSpeed;
@@ -487,13 +572,13 @@ using System.Collections.Generic;
             this._givenNextPosition = new Position(nextXPos, nextYPos);
         }
 
-        public Zombie(int id, int xPos, int yPos, Player owner = null): this(
+        public Zombie(int id, int xPos, int yPos, IStateChangedEventSender owner = null): this(
             id, xPos, yPos, Position.UndefinedPos.X, Position.UndefinedPos.Y, owner)
         {
             // nothing to add
         }
 
-        public Zombie(ZombieInputs zi, Player owner = null): 
+        public Zombie(ZombieInputs zi, IStateChangedEventSender owner = null): 
             this(zi.Id, zi.X, zi.Y, zi.XNext, zi.YNext, owner)
         {
             // nothing to add
@@ -505,12 +590,27 @@ using System.Collections.Generic;
                 this.Id, this.Pos.X, this.Pos.Y, this._givenNextPosition.X, this._givenNextPosition.Y);
         }
 
+        public override void UpdatePosition(Position pos)
+        {
+            base.UpdatePosition(pos);
+            this._givenNextPosition = Position.UndefinedPos;
+        }
 
         public void UpdateFromNewInputs(ZombieInputs newTurnZombieInputs)
         {
             // update positions
-            this.UpdatePosition(newTurnZombieInputs.X, newTurnZombieInputs.Y);
+            base.UpdatePosition(newTurnZombieInputs.X, newTurnZombieInputs.Y);
             this._givenNextPosition = new Position(newTurnZombieInputs.XNext, newTurnZombieInputs.YNext);
+        }
+
+        /// <summary>
+        /// Update this zombie position by simulating next move for a new turn.
+        /// </summary>
+        /// <param name="hero">hero of the game</param>
+        /// <param name="humans">humans of the game</param>
+        public void UpdateByNewTurnSimulation(Hero hero, IEnumerable<Human> humans)
+        {
+            this.UpdatePosition(this.GetNextPosition(hero, humans));
         }
 
         public Human GetNearestHuman(IEnumerable<Human> humans)
@@ -617,8 +717,6 @@ using System.Collections.Generic;
         protected override void OnNewTurnStarted(object sender, EventArgs eventArgs)
         {
             this.ClearComputedData();
-            this.UpdatePosition(Position.UndefinedPos);
-            this._givenNextPosition = Position.UndefinedPos;
         }
 
         private void ClearComputedData()

@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Net;
 using System.Text;
 
 namespace CodeVsZombiesLibrary
@@ -49,6 +51,41 @@ namespace CodeVsZombiesLibrary
         public void AddZombieInputs(int id, int x, int y, int nextX, int nextY)
         {
             this.ZombieInputs.Add(new ZombieInputs(id, x, y, nextX, nextY));
+        }
+
+        public bool Equals(Inputs other)
+        {
+            bool result = true;
+
+            if (this.X != other.X 
+                || this.Y != other.Y 
+                || this.HumanCount != other.HumanCount 
+                || this.ZombieCount != other.ZombieCount
+                || this.HumansInputs.Count != other.HumansInputs.Count
+                || this.ZombieInputs.Count != other.ZombieInputs.Count)
+            {
+                return false;
+            }
+
+            foreach((HumanInputs thisHi, HumanInputs otherHi) in
+                this.HumansInputs.OrderBy(hi => hi.Id).Zip(other.HumansInputs.OrderBy(hi => hi.Id)))
+            {
+                if (!thisHi.Equals(otherHi))
+                {
+                    return false;
+                }
+            }
+            
+            foreach((ZombieInputs thisZi, ZombieInputs otherZi) in
+                this.ZombieInputs.OrderBy(hi => hi.Id).Zip(other.ZombieInputs.OrderBy(hi => hi.Id)))
+            {
+                if (!thisZi.Equals(otherZi))
+                {
+                    return false;
+                }
+            }
+
+            return result;
         }
 
         public override string ToString()

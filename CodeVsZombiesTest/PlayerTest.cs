@@ -11,6 +11,25 @@ namespace CodeVsZombiesTest
     public class PlayerTest
     {
         [TestMethod]
+        public void GetNextHeroTarget_Reflexe_ScoreNotNull()
+        {
+            Inputs inputs = InputsGenerator.GenerateInputs(CodingGameTestCase.Reflexe);
+            Player p = new Player(inputs);
+            Game g = new Game(inputs);
+            int maxTimeInMilliSeconds = 95;
+            
+            bool endGame = false;
+            while (!endGame)
+            {
+                Position targetPos = p.GetNextHeroTarget(maxTimeInMilliSeconds);
+                endGame = g.UpdateByNewTurnSimulation(targetPos);
+            }
+
+            Assert.IsTrue(p.BestSimulScore > 0);
+        }
+
+
+        [TestMethod]
         public void GetNextHeroTarget_Dilemme_HeroTargetsAreBestSimulatedTargetHistory()
         {
             Inputs inputs = InputsGenerator.GenerateInputs(CodingGameTestCase.Dilemme);
@@ -34,14 +53,21 @@ namespace CodeVsZombiesTest
         }
 
         [TestMethod]
-        public void SimulateManyGamesWithRandomZombieStrat_Reflexe_ScoreNotNull()
+        public void GetNextHeroTarget_Dilemme_PlayerBestSimulScoreEqualsActualScore()
         {
-            Inputs inputs = InputsGenerator.GenerateInputs(CodingGameTestCase.Reflexe);
+            Inputs inputs = InputsGenerator.GenerateInputs(CodingGameTestCase.Dilemme);
             Player p = new Player(inputs);
+            Game g = new Game(inputs);
+            int maxTimeInMilliSeconds = 95;
+            
+            bool endGame = false;
+            while (!endGame)
+            {
+                Position targetPos = p.GetNextHeroTarget(maxTimeInMilliSeconds);
+                endGame = g.UpdateByNewTurnSimulation(targetPos);
+            }
 
-            p.SimulateManyGamesWithRandomZombieStrat(95);
-
-            Assert.IsTrue(p.BestSimulScore > 0);
+            Assert.AreEqual(p.BestSimulScore, g.Score);
         }
 
         [TestMethod]

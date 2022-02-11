@@ -1,3 +1,5 @@
+using System;
+
 namespace CodeVsZombiesLibrary
 {
     public struct HumanInputs
@@ -11,6 +13,11 @@ namespace CodeVsZombiesLibrary
             this.Id = id;
             this.X = x;
             this.Y = y;
+        }
+
+        public bool Equals(HumanInputs other)
+        {
+            return this.Id == other.Id && this.X == other.X && this.Y == other.Y;
         }
 
         public override string ToString()

@@ -30,6 +30,7 @@ namespace CodeVsZombiesLibrary
         {
             this._lastInputs = newTurnInputs;
             this._curGame.UpdateFromNewInputs(newTurnInputs);
+            this._curZombieTarget = UndefinedZombieTarget;
         }
 
         /// <summary>
@@ -48,7 +49,7 @@ namespace CodeVsZombiesLibrary
                 return this._bestSimulTargetHistory.Dequeue();
             }
 
-            if (this._lastSimulTargetHistory.Count > 0)
+            if (this._lastSimulTargetHistory.Count > 0)
             {
                 return this._lastSimulTargetHistory.Dequeue();
             }
@@ -78,10 +79,11 @@ namespace CodeVsZombiesLibrary
                     {
                         this.BestSimulScore = this._curGame.Score;
                         (this._bestSimulTargetHistory, this._lastSimulTargetHistory) = (this._lastSimulTargetHistory, this._bestSimulTargetHistory);
-                        this._lastSimulTargetHistory.Clear();
                     }
 
                     this._curGame.InitFromInputs(this._lastInputs);
+                    this._curZombieTarget = UndefinedZombieTarget;
+                    this._lastSimulTargetHistory.Clear();
                     numberOfGameSimulated += 1;
                 }
             }
@@ -97,7 +99,7 @@ namespace CodeVsZombiesLibrary
         /// <returns>The suggested target pos for hero for next turn</returns>
         private Position ComputeNextHeroTargetRandomZombieStrat()
         {
-            if (this._curZombieTarget == Player.UndefinedZombieTarget 
+            if (this._curZombieTarget == UndefinedZombieTarget 
                 || !this._curGame.IsZombieAlive(this._curZombieTarget))
             {
                 this._curZombieTarget = this.SelectRandomZombieAsTarget();

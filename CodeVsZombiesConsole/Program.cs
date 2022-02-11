@@ -63,10 +63,10 @@ namespace CodeVsZombiesConsole
                 if (firstLoop)
                 {
                     player = new Player(allInputs);
+                    firstLoop = false;
                 }
                 else
                 {
-                    firstLoop = false;
                     player.UpdateFromNewInputs(allInputs);
                 }
 
