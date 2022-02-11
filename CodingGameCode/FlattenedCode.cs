@@ -1,14 +1,9 @@
 using System;
-using System.Linq;
-using System.IO;
-using System.Text;
-using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
+using System.Text;
 
-/**
- * Save humans, destroy zombies!
- **/
     class Program
     {
         const long maxResponseDelayInMilliSeconds = 100;
@@ -67,10 +62,10 @@ using System.Diagnostics;
                 if (firstLoop)
                 {
                     player = new Player(allInputs);
+                    firstLoop = false;
                 }
                 else
                 {
-                    firstLoop = false;
                     player.UpdateFromNewInputs(allInputs);
                 }
 
@@ -83,6 +78,104 @@ using System.Diagnostics;
             }
         }
     }
+
+    public abstract class Character
+    {
+        public int Id {get; private set;}
+        public Position Pos {get; private set;}
+        public int Speed {get; protected set;}
+        protected IStateChangedEventSender Owner { get; private set; }
+
+        public Character(int id, int xPos, int yPos, IStateChangedEventSender owner = null)
+        {
+            this.Id = id;
+            this.Pos = new Position(xPos, yPos);
+            this.Owner = owner;
+
+            if (owner != null)
+            {
+                owner.StateChanged += OnNewTurnStarted;
+            }
+        }
+
+        public virtual void UpdatePosition(Position pos)
+        {
+            this.Pos = pos;
+        }
+
+        public void UpdatePosition(int x, int y)
+            => this.UpdatePosition(new Position(x, y));
+
+        public Position ComputeNextPos(Position targetPos)
+        {
+            return this.ComputeNextPos(this.Pos, targetPos);
+        }
+
+        public Position ComputeNextPos(Position sourcePos, Position targetPos)
+        {
+            if (this.Speed == 0) return sourcePos;
+
+            if (sourcePos.X < 0 || sourcePos.Y < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(sourcePos), $"sourcePos should not contains negative coordinates (values : {targetPos})");
+            }
+            if (targetPos.X < 0 || targetPos.Y < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(targetPos), $"targetPos should not contains negative coordinates (values : {targetPos})");
+            }
+            
+            if (sourcePos.Equals(targetPos)) return targetPos;
+
+            double distToTarget = sourcePos.DistanceTo(targetPos);
+            int deltaX = targetPos.X - sourcePos.X;
+            int deltaY = targetPos.Y - sourcePos.Y;
+            double realNextX = sourcePos.X + this.Speed*deltaX / distToTarget;
+            double realNextY = sourcePos.Y + this.Speed*deltaY / distToTarget;
+
+            Position result = new Position(realNextX, realNextY);
+
+            // if target reached, return target pos
+            if (Math.Abs(result.X - sourcePos.X) >= Math.Abs(deltaX)
+                && Math.Abs(result.Y - sourcePos.Y) >= Math.Abs(deltaY))
+            {
+                return targetPos;
+            }
+
+            return result;
+        }
+
+        public int TurnsToBeInRange(Position targetPos, int range)
+            => this.TurnsToBeInRange(this.Pos, targetPos, range);
+
+        public int TurnsToBeInRange(Position sourcePos, Position targetPos, int range)
+        {
+            if (sourcePos.X < 0 || sourcePos.Y < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(sourcePos), $"sourcePos should not contains negative coordinates (values : {targetPos})");
+            }
+            if (targetPos.X < 0 || targetPos.Y < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(targetPos), $"targetPos should not contains negative coordinates (values : {targetPos})");
+            }
+
+            if (this.Speed == 0) return -1;
+
+            int result = 0;
+            while (sourcePos.DistanceTo(targetPos) > range)
+            {
+                sourcePos = this.ComputeNextPos(sourcePos, targetPos);
+                result += 1;
+            }
+
+            return result;
+        }
+
+        protected virtual void OnNewTurnStarted(object sender, EventArgs eventArgs)
+        {
+            // Nothing to do in Character class. To be implemented in derived classes.
+        }
+    }
+
 
     public class Game: IStateChangedEventSender
     {
@@ -186,6 +279,11 @@ using System.Diagnostics;
             return result;
         }
 
+        public GameState ToState()
+        {
+            return new GameState(this.ToInputs(), this.Score);
+        }
+
         public int[] GetHumansAliveIds() => this.Humans.Keys.ToArray();
 
         public int[] GetZombiesAliveIds() => this.Zombies.Keys.ToArray();
@@ -241,7 +339,7 @@ using System.Diagnostics;
             int score = 0;
 
             int scoreBase = this.Humans.Count * this.Humans.Count * 10;
-            (int fibA, int fibB) = (2, 3);
+            (int fibA, int fibB) = (1, 1);
             foreach(int zombieId in this.Zombies.Keys)
             {
                 if (this.Ash.Pos.DistanceTo(this.Zombies[zombieId].Pos) <= Hero.ShootRange)
@@ -273,100 +371,26 @@ using System.Diagnostics;
         }
     }
 
-    public abstract class Character
+    public class GameState
     {
-        public int Id {get; private set;}
-        public Position Pos {get; private set;}
-        public int Speed {get; protected set;}
-        protected IStateChangedEventSender Owner { get; private set; }
+        public Inputs Inputs { get; }
+        public int Score { get; }
 
-        public Character(int id, int xPos, int yPos, IStateChangedEventSender owner = null)
+        public bool Equals(GameState other)
         {
-            this.Id = id;
-            this.Pos = new Position(xPos, yPos);
-            this.Owner = owner;
+            return this.Score == other.Score && this.Inputs.Equals(other.Inputs);
 
-            if (owner != null)
-            {
-                owner.StateChanged += OnNewTurnStarted;
-            }
         }
 
-        public virtual void UpdatePosition(Position pos)
+        public GameState(Inputs inputs, int score)
         {
-            this.Pos = pos;
+            this.Inputs = inputs;
+            this.Score = score;
         }
 
-        public void UpdatePosition(int x, int y)
-            => this.UpdatePosition(new Position(x, y));
-
-        public Position ComputeNextPos(Position targetPos)
+        public override string ToString()
         {
-            return this.ComputeNextPos(this.Pos, targetPos);
-        }
-
-        public Position ComputeNextPos(Position sourcePos, Position targetPos)
-        {
-            if (this.Speed == 0) return sourcePos;
-
-            if (sourcePos.X < 0 || sourcePos.Y < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(sourcePos), $"sourcePos should not contains negative coordinates (values : {targetPos})");
-            }
-            if (targetPos.X < 0 || targetPos.Y < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(targetPos), $"targetPos should not contains negative coordinates (values : {targetPos})");
-            }
-            
-            if (sourcePos.Equals(targetPos)) return targetPos;
-
-            double distToTarget = sourcePos.DistanceTo(targetPos);
-            int deltaX = targetPos.X - sourcePos.X;
-            int deltaY = targetPos.Y - sourcePos.Y;
-            double realNextX = sourcePos.X + this.Speed*deltaX / distToTarget;
-            double realNextY = sourcePos.Y + this.Speed*deltaY / distToTarget;
-
-            Position result = new Position(realNextX, realNextY);
-
-            // if target reached, return target pos
-            if (Math.Abs(result.X - sourcePos.X) >= Math.Abs(deltaX)
-                && Math.Abs(result.Y - sourcePos.Y) >= Math.Abs(deltaY))
-            {
-                return targetPos;
-            }
-
-            return result;
-        }
-
-        public int TurnsToBeInRange(Position targetPos, int range)
-            => this.TurnsToBeInRange(this.Pos, targetPos, range);
-
-        public int TurnsToBeInRange(Position sourcePos, Position targetPos, int range)
-        {
-            if (sourcePos.X < 0 || sourcePos.Y < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(sourcePos), $"sourcePos should not contains negative coordinates (values : {targetPos})");
-            }
-            if (targetPos.X < 0 || targetPos.Y < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(targetPos), $"targetPos should not contains negative coordinates (values : {targetPos})");
-            }
-
-            if (this.Speed == 0) return -1;
-
-            int result = 0;
-            while (sourcePos.DistanceTo(targetPos) > range)
-            {
-                sourcePos = this.ComputeNextPos(sourcePos, targetPos);
-                result += 1;
-            }
-
-            return result;
-        }
-
-        protected virtual void OnNewTurnStarted(object sender, EventArgs eventArgs)
-        {
-            // Nothing to do in Character class. To be implemented in derived classes.
+            return this.Inputs.ToString() + $"Score : {this.Score}{Environment.NewLine})";
         }
     }
 
@@ -418,6 +442,7 @@ using System.Diagnostics;
         }
     }
 
+
     public class Human : Character
     {   public Human(int id, int xPos, int yPos, IStateChangedEventSender owner = null):
             base(id, xPos, yPos, owner)
@@ -433,6 +458,131 @@ using System.Diagnostics;
         public HumanInputs ToHumanInputs()
         {
             return new HumanInputs(this.Id, this.Pos.X, this.Pos.Y);
+        }
+    }
+
+    public struct HumanInputs
+    {
+        public int Id { get; private set; }
+        public int X { get; private set; }
+        public int Y { get; private set; }
+
+        public HumanInputs(int id, int x, int y)
+        {
+            this.Id = id;
+            this.X = x;
+            this.Y = y;
+        }
+
+        public bool Equals(HumanInputs other)
+        {
+            return this.Id == other.Id && this.X == other.X && this.Y == other.Y;
+        }
+
+        public override string ToString()
+        {
+            return $"{Id} {X} {Y}";
+        }
+    }
+
+    public class Inputs
+    {
+        public int X {get; set;}
+        public int Y { get; set; }
+        public int HumanCount { get; set; }
+        public IList<HumanInputs> HumansInputs { get; private set; }
+
+        public int ZombieCount { get; set; }
+        public IList<ZombieInputs> ZombieInputs { get; private set; }
+
+        public Inputs()
+        {
+            this.HumansInputs = new List<HumanInputs>();
+            this.ZombieInputs = new List<ZombieInputs>();
+            this.Reset();
+        }
+
+        public Inputs(int x, int y, IList<HumanInputs> humanInputs, IList<ZombieInputs> zombieInputs)
+        {
+            this.X = x;
+            this.Y = y;
+            this.HumanCount = humanInputs.Count;
+            this.HumansInputs = humanInputs;
+            this.ZombieCount = zombieInputs.Count;
+            this.ZombieInputs = zombieInputs;
+        }
+
+        public void Reset()
+        {
+            this.X = -1;
+            this.Y = -1;
+            this.HumanCount = 0;
+            this.HumansInputs.Clear();
+            this.ZombieCount = 0;
+            this.ZombieInputs.Clear();
+        }
+
+        public void AddHumanInputs(int id, int x, int y)
+        {
+            this.HumansInputs.Add(new HumanInputs(id, x, y));
+        }
+
+        public void AddZombieInputs(int id, int x, int y, int nextX, int nextY)
+        {
+            this.ZombieInputs.Add(new ZombieInputs(id, x, y, nextX, nextY));
+        }
+
+        public bool Equals(Inputs other)
+        {
+            bool result = true;
+
+            if (this.X != other.X 
+                || this.Y != other.Y 
+                || this.HumanCount != other.HumanCount 
+                || this.ZombieCount != other.ZombieCount
+                || this.HumansInputs.Count != other.HumansInputs.Count
+                || this.ZombieInputs.Count != other.ZombieInputs.Count)
+            {
+                return false;
+            }
+
+            foreach((HumanInputs thisHi, HumanInputs otherHi) in
+                this.HumansInputs.OrderBy(hi => hi.Id).Zip(other.HumansInputs.OrderBy(hi => hi.Id)))
+            {
+                if (!thisHi.Equals(otherHi))
+                {
+                    return false;
+                }
+            }
+            
+            foreach((ZombieInputs thisZi, ZombieInputs otherZi) in
+                this.ZombieInputs.OrderBy(hi => hi.Id).Zip(other.ZombieInputs.OrderBy(hi => hi.Id)))
+            {
+                if (!thisZi.Equals(otherZi))
+                {
+                    return false;
+                }
+            }
+
+            return result;
+        }
+
+        public override string ToString()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append($"Ash position : {this.X} {this.Y}{Environment.NewLine}");
+            sb.Append($"Human count : {this.HumanCount}{Environment.NewLine}");
+            for(int i = 0; i < this.HumansInputs.Count; i++)
+            {
+                sb.Append($"human n° {i} : {this.HumansInputs[i]}{Environment.NewLine}");
+            }
+            sb.Append($"Zombie count : {this.ZombieCount}{Environment.NewLine}");
+            for(int i = 0; i < this.ZombieInputs.Count; i++)
+            {
+                sb.Append($"zombie n° {i} : {this.ZombieInputs[i]}{Environment.NewLine}");
+            }
+
+            return sb.ToString();
         }
     }
 
@@ -467,6 +617,7 @@ using System.Diagnostics;
         {
             this._lastInputs = newTurnInputs;
             this._curGame.UpdateFromNewInputs(newTurnInputs);
+            this._curZombieTarget = UndefinedZombieTarget;
         }
 
         /// <summary>
@@ -485,7 +636,7 @@ using System.Diagnostics;
                 return this._bestSimulTargetHistory.Dequeue();
             }
 
-            if (this._lastSimulTargetHistory.Count > 0)
+            if (this._lastSimulTargetHistory.Count > 0)
             {
                 return this._lastSimulTargetHistory.Dequeue();
             }
@@ -515,10 +666,11 @@ using System.Diagnostics;
                     {
                         this.BestSimulScore = this._curGame.Score;
                         (this._bestSimulTargetHistory, this._lastSimulTargetHistory) = (this._lastSimulTargetHistory, this._bestSimulTargetHistory);
-                        this._lastSimulTargetHistory.Clear();
                     }
 
                     this._curGame.InitFromInputs(this._lastInputs);
+                    this._curZombieTarget = UndefinedZombieTarget;
+                    this._lastSimulTargetHistory.Clear();
                     numberOfGameSimulated += 1;
                 }
             }
@@ -534,7 +686,7 @@ using System.Diagnostics;
         /// <returns>The suggested target pos for hero for next turn</returns>
         private Position ComputeNextHeroTargetRandomZombieStrat()
         {
-            if (this._curZombieTarget == Player.UndefinedZombieTarget 
+            if (this._curZombieTarget == UndefinedZombieTarget 
                 || !this._curGame.IsZombieAlive(this._curZombieTarget))
             {
                 this._curZombieTarget = this.SelectRandomZombieAsTarget();
@@ -550,6 +702,70 @@ using System.Diagnostics;
             return zombiesId[rndIdx];
         }
     }
+
+
+    public struct Position
+    {
+        public int X;
+        public int Y;
+
+        public static Position UndefinedPos => new Position(-1, -1);
+        
+        public static Position FindBarycentre(IEnumerable<Position> positions)
+        {
+            if (positions is null) throw new ArgumentNullException(nameof(positions));
+            if (!positions.Any()) 
+            {
+                throw new ArgumentOutOfRangeException(nameof(positions), $"No position given to compute barycentre");
+            }
+
+            int count = 0;
+            double x = 0;
+            double y = 0;
+
+            foreach(Position pos in positions)
+            {
+                count += 1;
+                x += pos.X;
+                y += pos.Y;
+            }
+
+            return new Position(x/count, y/count);
+        }
+
+        public Position(int x, int y)
+        {
+            this.X = x;
+            this.Y = y;
+        }
+
+        public Position(double x, double y)
+        {
+            this.X = Position.RoundCoordinate(x);
+            this.Y = Position.RoundCoordinate(y);            
+        }
+
+        public double DistanceTo(Position pos)
+        {
+            // Position (-1, -1) means character is dead => return float.NaN as distance
+            if (X < 0 || Y < 0 || pos.X < 0 || pos.Y < 0)
+            {
+                return double.NaN;
+            }
+
+            return Math.Sqrt(
+                Math.Pow(pos.X-this.X, 2) + Math.Pow(pos.Y-this.Y, 2));
+        }
+
+        public bool Equals(Position pos)
+        {
+            return this.X == pos.X && this.Y == pos.Y;
+        }
+
+        private static int RoundCoordinate(double realCoordinate) 
+            => (int)Math.Floor(realCoordinate);
+    }
+
 
     public class Zombie: Character
     {
@@ -729,156 +945,6 @@ using System.Diagnostics;
         }
     }
 
-
-    public struct Position
-    {
-        public int X;
-        public int Y;
-
-        public static Position UndefinedPos => new Position(-1, -1);
-        
-        public static Position FindBarycentre(IEnumerable<Position> positions)
-        {
-            if (positions is null) throw new ArgumentNullException(nameof(positions));
-            if (!positions.Any()) 
-            {
-                throw new ArgumentOutOfRangeException(nameof(positions), $"No position given to compute barycentre");
-            }
-
-            int count = 0;
-            double x = 0;
-            double y = 0;
-
-            foreach(Position pos in positions)
-            {
-                count += 1;
-                x += pos.X;
-                y += pos.Y;
-            }
-
-            return new Position(x/count, y/count);
-        }
-
-        public Position(int x, int y)
-        {
-            this.X = x;
-            this.Y = y;
-        }
-
-        public Position(double x, double y)
-        {
-            this.X = Position.RoundCoordinate(x);
-            this.Y = Position.RoundCoordinate(y);            
-        }
-
-        public double DistanceTo(Position pos)
-        {
-            // Position (-1, -1) means character is dead => return float.NaN as distance
-            if (X < 0 || Y < 0 || pos.X < 0 || pos.Y < 0)
-            {
-                return double.NaN;
-            }
-
-            return Math.Sqrt(
-                Math.Pow(pos.X-this.X, 2) + Math.Pow(pos.Y-this.Y, 2));
-        }
-
-        public bool Equals(Position pos)
-        {
-            return this.X == pos.X && this.Y == pos.Y;
-        }
-
-        private static int RoundCoordinate(double realCoordinate) 
-            => (int)Math.Floor(realCoordinate);
-    }
-
-
-
-    public struct HumanInputs
-    {
-        public int Id { get; private set; }
-        public int X { get; private set; }
-        public int Y { get; private set; }
-
-        public HumanInputs(int id, int x, int y)
-        {
-            this.Id = id;
-            this.X = x;
-            this.Y = y;
-        }
-
-        public override string ToString()
-        {
-            return $"{Id} {X} {Y}";
-        }
-    }
-
-    public class Inputs
-    {
-        public int X {get; set;}
-        public int Y { get; set; }
-        public int HumanCount { get; set; }
-        public IList<HumanInputs> HumansInputs { get; private set; }
-
-        public int ZombieCount { get; set; }
-        public IList<ZombieInputs> ZombieInputs { get; private set; }
-
-        public Inputs()
-        {
-            this.HumansInputs = new List<HumanInputs>();
-            this.ZombieInputs = new List<ZombieInputs>();
-            this.Reset();
-        }
-
-        public Inputs(int x, int y, IList<HumanInputs> humanInputs, IList<ZombieInputs> zombieInputs)
-        {
-            this.X = x;
-            this.Y = y;
-            this.HumanCount = humanInputs.Count;
-            this.HumansInputs = humanInputs;
-            this.ZombieCount = zombieInputs.Count;
-            this.ZombieInputs = zombieInputs;
-        }
-
-        public void Reset()
-        {
-            this.X = -1;
-            this.Y = -1;
-            this.HumanCount = 0;
-            this.HumansInputs.Clear();
-            this.ZombieCount = 0;
-            this.ZombieInputs.Clear();
-        }
-
-        public void AddHumanInputs(int id, int x, int y)
-        {
-            this.HumansInputs.Add(new HumanInputs(id, x, y));
-        }
-
-        public void AddZombieInputs(int id, int x, int y, int nextX, int nextY)
-        {
-            this.ZombieInputs.Add(new ZombieInputs(id, x, y, nextX, nextY));
-        }
-
-        public override string ToString()
-        {
-            StringBuilder sb = new StringBuilder();
-            sb.Append($"Ash position : {this.X} {this.Y}{Environment.NewLine}");
-            sb.Append($"Human count : {this.HumanCount}{Environment.NewLine}");
-            for(int i = 0; i < this.HumansInputs.Count; i++)
-            {
-                sb.Append($"human n° {i} : {this.HumansInputs[i]}{Environment.NewLine}");
-            }
-            sb.Append($"Zombie count : {this.ZombieCount}{Environment.NewLine}");
-            for(int i = 0; i < this.ZombieInputs.Count; i++)
-            {
-                sb.Append($"zombie n° {i} : {this.ZombieInputs[i]}{Environment.NewLine}");
-            }
-
-            return sb.ToString();
-        }
-    }
-
     public struct ZombieInputs
     {
         public int Id { get; private set; }
@@ -894,6 +960,16 @@ using System.Diagnostics;
             this.Y = y;
             this.XNext = xNext;
             this.YNext = yNext;
+        }
+
+        public bool Equals(ZombieInputs other)
+        {
+            return
+                this.Id == other.Id
+                && this.X == other.X
+                && this.Y == other.Y
+                && (this.XNext == -1 || other.XNext == -1 || this.XNext == other.XNext)
+                && (this.YNext == -1 || other.YNext == -1 || this.YNext == other.YNext);
         }
 
         public override string ToString()
