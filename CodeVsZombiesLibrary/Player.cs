@@ -11,7 +11,8 @@ namespace CodeVsZombiesLibrary
         public int BestSimulScore { get; private set; }
         public IEnumerable<Position> BestSimulTargetHistory => this._bestSimulTargetHistory.ToArray();
 
-        private Game _curGame;
+        private readonly Game _curGame;
+        private readonly Game _simulGame;
         private Inputs _lastInputs;
         private readonly Random _randomGen = new Random();
         private int _curZombieTarget = UndefinedZombieTarget;
@@ -23,6 +24,7 @@ namespace CodeVsZombiesLibrary
         {
             this._lastInputs = startInputs;
             this._curGame = new Game(startInputs);
+            this._simulGame = new Game(startInputs);
             this.BestSimulScore = 0;
         }
 
@@ -66,22 +68,23 @@ namespace CodeVsZombiesLibrary
             this._stopwatch.Start();
 
             this._lastSimulTargetHistory.Clear();
+            this._simulGame.InitFromInputs(this._lastInputs);
 
             while (this._stopwatch.ElapsedMilliseconds < maxTimeInMilliSeconds - marginInMilliSeconds)
             {
                 Position targetPos = this.ComputeNextHeroTargetRandomZombieStrat();
                 this._lastSimulTargetHistory.Enqueue(targetPos);
-                bool endGame = this._curGame.UpdateByNewTurnSimulation(targetPos);
+                bool endGame = this._simulGame.UpdateByNewTurnSimulation(targetPos);
 
                 if (endGame)
                 {
-                    if (this._curGame.Score > this.BestSimulScore)
+                    if (this._simulGame.Score > this.BestSimulScore)
                     {
-                        this.BestSimulScore = this._curGame.Score;
+                        this.BestSimulScore = this._simulGame.Score;
                         (this._bestSimulTargetHistory, this._lastSimulTargetHistory) = (this._lastSimulTargetHistory, this._bestSimulTargetHistory);
                     }
 
-                    this._curGame.InitFromInputs(this._lastInputs);
+                    this._simulGame.InitFromInputs(this._lastInputs);
                     this._curZombieTarget = UndefinedZombieTarget;
                     this._lastSimulTargetHistory.Clear();
                     numberOfGameSimulated += 1;
@@ -100,17 +103,17 @@ namespace CodeVsZombiesLibrary
         private Position ComputeNextHeroTargetRandomZombieStrat()
         {
             if (this._curZombieTarget == UndefinedZombieTarget 
-                || !this._curGame.IsZombieAlive(this._curZombieTarget))
+                || !this._simulGame.IsZombieAlive(this._curZombieTarget))
             {
                 this._curZombieTarget = this.SelectRandomZombieAsTarget();
             }
 
-            return this._curGame.GetZombieNextPosition(this._curZombieTarget);
+            return this._simulGame.GetZombieNextPosition(this._curZombieTarget);
         }
 
         private int SelectRandomZombieAsTarget()
         {
-            int[] zombiesId = this._curGame.GetZombiesAliveIds();
+            int[] zombiesId = this._simulGame.GetZombiesAliveIds();
             int rndIdx = _randomGen.Next(zombiesId.Length);
             return zombiesId[rndIdx];
         }

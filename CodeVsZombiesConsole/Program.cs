@@ -57,7 +57,7 @@ namespace CodeVsZombiesConsole
                 // Write an action using Console.WriteLine()
                 // To debug: Console.Error.WriteLine("Debug messages...");
 
-                Console.Error.WriteLine(allInputs);
+                //Console.Error.WriteLine(allInputs);
 
                 // create or update player infos
                 if (firstLoop)
