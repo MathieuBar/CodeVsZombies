@@ -41,10 +41,7 @@ namespace CodeVsZombiesLibrary
         /// <returns>Next hero target for the "real" game</returns>
         public Position GetNextHeroTarget(int maxTimeInMilliSeconds)
         {
-            if (this.BestSimulScore == 0)
-            {
-                this.SimulateManyGamesWithRandomZombieStrat(maxTimeInMilliSeconds);
-            }
+            this.SimulateManyGamesWithRandomZombieStrat(maxTimeInMilliSeconds);
 
             if (this._bestSimulTargetHistory.Count > 0)
             {
@@ -68,7 +65,8 @@ namespace CodeVsZombiesLibrary
             this._stopwatch.Start();
 
             this._lastSimulTargetHistory.Clear();
-            this._simulGame.InitFromInputs(this._lastInputs);
+            GameState curGameState = new GameState(this._lastInputs, this._curGame.Score);
+            this._simulGame.ResetFromGameState(curGameState);
 
             while (this._stopwatch.ElapsedMilliseconds < maxTimeInMilliSeconds - marginInMilliSeconds)
             {
@@ -84,7 +82,7 @@ namespace CodeVsZombiesLibrary
                         (this._bestSimulTargetHistory, this._lastSimulTargetHistory) = (this._lastSimulTargetHistory, this._bestSimulTargetHistory);
                     }
 
-                    this._simulGame.InitFromInputs(this._lastInputs);
+                    this._simulGame.ResetFromGameState(curGameState);
                     this._curZombieTarget = UndefinedZombieTarget;
                     this._lastSimulTargetHistory.Clear();
                     numberOfGameSimulated += 1;

@@ -30,26 +30,35 @@ namespace CodeVsZombiesTest
 
 
         [TestMethod]
-        public void GetNextHeroTarget_Dilemme_HeroTargetsAreBestSimulatedTargetHistory()
+        public void GetNextHeroTarget_Dilemme_FinalScoreBetterOrEqualThanFirstSimulation()
         {
             Inputs inputs = InputsGenerator.GenerateInputs(CodingGameTestCase.Dilemme);
-            Player p = new Player(inputs);
 
             int maxTimeInMilliSeconds = 95;
-            p.SimulateManyGamesWithRandomZombieStrat(maxTimeInMilliSeconds);
-            IEnumerable<Position> bestSimulTargetHistory = p.BestSimulTargetHistory;
 
-            bool samePos = true;
-            foreach(Position pos in bestSimulTargetHistory)
+            // simulate game with target history simulated at first turn 
+            Player playerRef = new Player(inputs);
+            playerRef.SimulateManyGamesWithRandomZombieStrat(maxTimeInMilliSeconds);
+            IEnumerable<Position> bestSimulTargetHistory = playerRef.BestSimulTargetHistory;
+            Game gameRef = new Game(inputs);
+            foreach(Position targetPos in bestSimulTargetHistory)
             {
-                Position givenTargetPos = p.GetNextHeroTarget(maxTimeInMilliSeconds);
-                if (pos.X != givenTargetPos.X || pos.Y != givenTargetPos.Y)
-                {
-                    samePos = false;
-                }
+                bool gameRefEnd = gameRef.UpdateByNewTurnSimulation(targetPos);
+                if (gameRefEnd) break;
             }
+            int scoreRef = gameRef.Score;
 
-            Assert.IsTrue(samePos);
+            // simulate game with player GetNextHeroTarget (with simulation at each turn to try and improve score
+            Game gameImproved = new Game(inputs);
+            bool endGameImproved = false;
+            while (!endGameImproved)
+            {
+                playerRef.UpdateFromNewInputs(gameImproved.ToInputs());
+                endGameImproved =  gameImproved.UpdateByNewTurnSimulation(playerRef.GetNextHeroTarget(maxTimeInMilliSeconds));
+            }
+            int scoreImproved = gameImproved.Score;
+
+            Assert.IsTrue(scoreImproved >= scoreRef);
         }
 
         [TestMethod]
@@ -65,6 +74,10 @@ namespace CodeVsZombiesTest
             {
                 Position targetPos = p.GetNextHeroTarget(maxTimeInMilliSeconds);
                 endGame = g.UpdateByNewTurnSimulation(targetPos);
+                if (!endGame)
+                {
+                    p.UpdateFromNewInputs(g.ToInputs());
+                }
             }
 
             Assert.AreEqual(p.BestSimulScore, g.Score);
